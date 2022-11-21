@@ -1,0 +1,354 @@
+<html>
+  <head>
+    <title>Solar PV Status</title>
+    <script>
+      var g_chart_c = { ncol: 1, map: consume, cid: "consume", vert: 1, horz: 24 };
+      var g_chart_s = { ncol: 1, map: supply, cid: "supply", vert: 1, horz: 24 };
+      var g_chart_p = { ncol: 2, map: produce, cid: "produce", vert: 1, horz: 24 };
+      var g_chart_b = { ncol: 5, map: battery, cid: "battery", vert: 1, horz: 24 };
+      var g_data;
+      function parse (xhttp) {
+          let i, j;
+          let data = xhttp.responseText.split ("\n");
+          if ( ! Array.isArray (data) ) return null;
+          let nrow = data.length;
+          for ( i = 0; i < nrow; ++i ) {
+              data[i] = data[i].split (",");
+              let ncol = data[i].length;
+              if ( ncol == 6 ) {
+                  for ( j = 0; j < ncol; ++j ) {
+                      data[i][j] = Number.parseInt (data[i][j])
+                  }
+              }
+              else {
+                  data.splice (i, 1);
+              }
+          }
+          return data;
+      }
+      function scale (data, irow, ncol, ntick, zoom) {
+          let i;
+          let nrow = data.length;
+          let max = 1;
+          for ( i = irow; i < nrow; ++i ) {
+              if ( data[i][ncol] > max ) max = data[i][ncol];
+          }
+          max /= zoom;
+          let tick = max / ntick;
+          let exp = 1;
+          while (true) {
+              if ( tick <= 1 ) { tick = exp; break; }
+              if ( tick <= 2 ) { tick = 2 * exp; break; }
+              if ( tick <= 5 ) { tick = 5 * exp; break; }
+              exp *= 10;
+              tick /= 10;
+          }
+          return { tick: tick, ntick: Math.ceil (max / tick) };
+      }
+      function consume (data) {
+          cHouse = data[1];
+          cInvtr = data[2] - data[1] - data[3] - data[4];
+          return [0, 0, cInvtr, cHouse + cInvtr];
+      }
+      function supply (data) {
+          let sTot = data[1];
+          let sTot2 = data[2] - data[3] - data[4];
+          if ( sTot2 > sTot ) sTot = sTot2;
+          let sGrid = 0;
+          if ( data[4] < 0 ) sGrid = - data[4];
+          let sBatt = 0
+          if ( data[3] < 0 ) sBatt = - data[3];
+          return [sGrid, sBatt + sGrid, sBatt + sGrid, sTot];
+      }
+      function produce (data) {
+          let pTot = data[2];
+          let pInv = data[2] - data[1] - data[3] - data[4];
+          let pGrid = 0;
+          if ( data[4] > 0 ) pGrid = data[4];
+          let pBatt = 0
+          if ( data[3] > 0 ) pBatt = data[3];
+          return [pGrid, pBatt + pGrid, pBatt + pGrid + pInv, pTot];
+      }
+      function battery (data) {
+          return [0, data[5], data[5], data[5]];
+      }
+      function fmtTime (tLab) {
+          return Math.trunc (( tLab % 86400 ) / 3600).toString () + ":" +
+              Math.trunc ((tLab % 3600 ) / 60 ).toString ().padStart (2, "0")
+      }
+      function plot (chart, data) {
+          let i, j;
+          let iRed, iBlue, iYellow, iGreen;
+          let pix;
+          let row1, row2;
+          let xpos = 70;
+          let ypos = 10;
+          let wth = 864;
+          let hgt = 200;
+          let c = document.getElementById(chart.cid);
+          let ctx = c.getContext("2d");
+          let imgData = ctx.createImageData(wth, hgt);
+          let tDay = data[0][0] - data[0][0] % 86400;
+          let tEnd = data[data.length - 1][0];
+          let tSta = tEnd - 3600 * chart.horz;
+          if ( tSta < tDay ) {
+              tSta = tDay;
+              tEnd = tSta + 3600 * tSta;
+          }
+          let nrow = data.length;
+          let irow = 0;
+          while ( tSta > data[irow][0] ) {
+              ++irow;
+              if ( irow >= nrow ) break;
+          }
+          let vmk = scale (data, irow, chart.ncol, 5, chart.vert);
+          let scl = hgt / (vmk.ntick * vmk.tick);
+          let xsc = 3600 * chart.horz / wth;
+          if ( irow > 0 ) row1 = chart.map (data[irow-1]);
+          row2 = chart.map (data[irow]);
+          for (i = 0; i < wth; ++i) {
+              let t = xsc * i + tSta;
+              if ( t > data[irow][0] ) {
+                  row1 = row2;
+                  ++irow;
+                  if ( irow >= nrow ) break;
+                  row2 = chart.map (data[irow]);
+              }
+              if ( irow == 0 ) {
+                  w2 = ( t + 5 - data[irow][0] ) / 5;
+                  if ( w2 < 0 ) w2 = 0;
+                  iRed = Math.trunc (scl * w2 * row2[0]);
+                  iBlue = Math.trunc (scl * w2 * row2[1]);
+                  iGreen = Math.trunc (scl * w2 * row2[2]);
+              } else {
+                  let w2 = ( t - data[irow-1][0] ) / ( data[irow][0] - data[irow-1][0] );
+                  let w1 = 1 - w2;
+                  iRed = Math.trunc (scl * ( w1 * row1[0] + w2 * row2[0] ));
+                  iBlue = Math.trunc (scl * ( w1 * row1[1] + w2 * row2[1] ));
+                  iYellow = Math.trunc (scl * ( w1 * row1[2] + w2 * row2[2] ));
+                  iGreen = Math.trunc (scl * ( w1 * row1[3] + w2 * row2[3] ));
+              }
+              for (j = 0; j < iRed; ++j) {
+                  pix = wth * ( hgt - 1 - j ) + i;
+                  imgData.data[4*pix]   = 255;
+                  imgData.data[4*pix+1] = 0;
+                  imgData.data[4*pix+2] = 0;
+                  imgData.data[4*pix+3] = 255;
+              }
+              for (j = iRed; j < iBlue; ++j) {
+                  pix = wth * ( hgt - 1 - j ) + i;
+                  imgData.data[4*pix]   = 0;
+                  imgData.data[4*pix+1] = 0;
+                  imgData.data[4*pix+2] = 255;
+                  imgData.data[4*pix+3] = 255;
+              }
+              for (j = iBlue; j < iYellow; ++j) {
+                  pix = wth * ( hgt - 1 - j ) + i;
+                  imgData.data[4*pix]   = 255;
+                  imgData.data[4*pix+1] = 255;
+                  imgData.data[4*pix+2] = 0;
+                  imgData.data[4*pix+3] = 255;
+              }
+              for (j = iYellow; j < iGreen; ++j) {
+                  pix = wth * ( hgt - 1 - j ) + i;
+                  imgData.data[4*pix]   = 0;
+                  imgData.data[4*pix+1] = 255;
+                  imgData.data[4*pix+2] = 0;
+                  imgData.data[4*pix+3] = 255;
+              }
+              for (j = iGreen; j < 200; ++j) {
+                  pix = wth * ( hgt - 1 - j ) + i;
+                  imgData.data[4*pix]   = 255;
+                  imgData.data[4*pix+1] = 255;
+                  imgData.data[4*pix+2] = 255;
+                  imgData.data[4*pix+3] = 255;
+              }
+          }
+          ctx.putImageData (imgData, xpos, ypos);
+          ctx.fillStyle = "#FFFFFFFF";
+          ctx.fillRect (0, 0, xpos - 1, ypos + hgt + 20);
+          ctx.fillRect (0, ypos + hgt, xpos + wth + 20, ypos + hgt + 40);
+          ctx.fillStyle = "#000000FF";
+          ctx.textAlign = "right";
+          ctx.textBaseline = "middle";
+          for ( i = 0; i <= vmk.ntick; ++i ) {
+              ctx.fillText ((vmk.tick * i).toString (), xpos - 5, ypos + hgt * ( 1 - i / vmk.ntick ));
+          }
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          tStp = 300 * chart.horz;
+          tLab = tSta - tSta % tStp;
+          for ( i = 0; i <= 12; ++i ) {
+              if ( tLab >= tSta ) {
+                  ctx.fillText (fmtTime (tLab),
+                                xpos + wth * (tLab - tSta) / ( 3600 * chart.horz ),
+                                ypos + hgt + 5);
+              }
+              tLab += tStp;
+          }
+          ctx.beginPath ();
+          ctx.moveTo (xpos - 1, ypos - 1);
+          ctx.lineTo (xpos + wth, ypos - 1);
+          ctx.lineTo (xpos + wth, ypos + hgt);
+          ctx.lineTo (xpos - 1, ypos + hgt);
+          ctx.lineTo (xpos - 1, ypos - 1);
+          ctx.stroke ();
+      }
+      function kwString (p) {
+          if ( p > 0 ) return "+" + ( p / 1000 ).toFixed (3) + " kW";
+          else return ( p / 1000 ).toFixed (3) + " kW";
+      }
+      function draw () {
+          lrow = g_data.length - 1;
+          let pinv = g_data[lrow][2] - g_data[lrow][1] - g_data[lrow][3] - g_data[lrow][4];
+          document.getElementById("p_update").innerHTML = fmtTime (g_data[lrow][0]);
+          document.getElementById("p_load").innerHTML = kwString (g_data[lrow][1]);
+          document.getElementById("p_inverter").innerHTML = kwString (pinv);
+          document.getElementById("p_solar").innerHTML = kwString (g_data[lrow][2]);
+          document.getElementById("p_batt").innerHTML = kwString (g_data[lrow][3]);
+          document.getElementById("p_grid").innerHTML = kwString (g_data[lrow][4]);
+          document.getElementById("p_charge").innerHTML = g_data[lrow][5].toString () + "%";
+          plot (g_chart_c, g_data);
+          plot (g_chart_s, g_data);
+          plot (g_chart_p, g_data);
+          plot (g_chart_b, g_data);
+      }
+      function receive (xhttp) {
+          g_data = parse (xhttp);
+          if ( ! Array.isArray (g_data) ) return;
+          draw ();
+      }
+      function update (xhttp) {
+          let i;
+          let data = parse (xhttp);
+          if ( Array.isArray (data) ) {
+              for ( i = 0; i < data.length; ++i ) {
+                  g_data.push (data[i]);
+              }
+          }
+          draw ();
+      }
+      function request (t, action) {
+          let url = "htbin/solis_data.py?From=" + t.toString ();
+          const xhttp = new XMLHttpRequest();
+          xhttp.onload = function() {action (this);}
+          xhttp.open("GET", url);
+          xhttp.send();
+      }
+      function autoupd () {
+          request (g_data[g_data.length - 1][0] + 1, update);
+      }
+      function initialise () {
+          let t = Math.trunc (Date.now () / 1000);
+          t -= t % 86400;
+          request (t, receive);
+          setInterval (autoupd, 300000);
+      }
+      function zoom (chart, dirn) {
+          let bChg = false;
+          if ( dirn == 'U' ) {
+              chart.vert *= 2;
+              bChg = true;
+          }
+          else if ( dirn == 'D' ) {
+              if ( chart.vert > 1 ) {
+                  chart.vert /= 2;
+                  bChg = true;
+              }
+          }
+          else if ( dirn == 'L' ) {
+              if ( chart.horz > 3 ) {
+                  chart.horz /= 2;
+                  chart.vert = 1;
+                  bChg = true;
+              }
+          }
+          else if ( dirn == 'R' ) {
+              if ( chart < 24 ) {
+                  chart.horz *= 2;
+                  bChg = true;
+              }
+          }
+          if ( bChg ) plot (chart, g_data);
+      }
+    </script>
+    <style>
+      h1 {
+          text-align: center;
+      }
+      #menu {
+          margin: auto;
+          border-collapse: collapse;
+          border: 1px solid black;
+      }
+      #menu td {
+          border: 1px solid black;
+          padding: 2px 10px;
+      }
+      #status {
+          border-collapse: collapse;
+          border: 3px solid black;
+          font-size: large;
+      }
+      #status th {
+          border: 3px solid black;
+          padding: 20px;
+      }
+      #status td {
+          border: 3px solid black;
+          padding: 20px;
+      }
+    </style>
+  </head>
+  <body onload="initialise ();">
+    <table id="menu"><tr>
+      <td><a href="daily.html">Yesterday</a></td>
+      <td><a href="monthly.html">This Month</a></td>
+    </tr></table>
+    <h1>Solar PhotoVoltaic Monitor</h1>
+    <h2>Current Status</h2>
+    <table id="status">
+      <tr><th>Update</th><th>Load</th><th>Inverter</th><th>Solar</th><th>Battery</th><th>Grid</th>
+        <th>Charge</th></tr>
+      <tr><td id="p_update">&nbsp;</td><td id="p_load">&nbsp;</td><td id="p_inverter">&nbsp;</td>
+        <td id="p_solar">&nbsp;</td><td id="p_batt">&nbsp;</td><td id="p_grid">&nbsp;</td>
+        <td id="p_charge">&nbsp;</td></tr>
+    </table>
+    <h2>Consumption (<span style="color: #00FF00;">House</span>,
+      <span style="color: #FFFF00;">Inverter</span>)</h2>
+      <canvas id="consume" width="950" height="240" style="float:left;"></canvas>
+      <div width="32" height="240" style="padding-top: 56;">
+        <img src="Zoom_Up.png" onClick="zoom (g_chart_c, 'U');">
+        <img src="Zoom_Down.png" onClick="zoom (g_chart_c, 'D');">
+        <img src="Zoom_Left.png" onClick="zoom (g_chart_c, 'L');">
+        <img src="Zoom_Right.png" onClick="zoom (g_chart_c, 'R');">
+      </div>
+    <h2>Supply (Source: <span style="color: #00FF00;">Solar</span>,
+      <span style="color: #0000FF;">Battery</span>,
+      <span style="color: #FF0000;">Grid</span>)</h2>
+      <canvas id="supply" width="950" height="240" style="float:left;"></canvas>
+      <div width="32" height="240" style="padding-top: 56;">
+        <img src="Zoom_Up.png" onClick="zoom (g_chart_s, 'U');">
+        <img src="Zoom_Down.png" onClick="zoom (g_chart_s, 'D');">
+        <img src="Zoom_Left.png" onClick="zoom (g_chart_s, 'L');">
+        <img src="Zoom_Right.png" onClick="zoom (g_chart_s, 'R');">
+      </div>
+      <h2>Production (Used by: <span style="color: #00FF00;">House</span>,
+        <span style="color: #FFFF00;">Inverter</span>,
+        <span style="color: #0000FF;">Battery</span>,
+        <span style="color: #FF0000;">Grid</span>)</h2>
+      <canvas id="produce" width="950" height="240" style="float:left;"></canvas>
+      <div width="32" height="240" style="padding-top: 56;">
+        <img src="Zoom_Up.png" onClick="zoom (g_chart_p, 'U');">
+        <img src="Zoom_Down.png" onClick="zoom (g_chart_p, 'D');">
+        <img src="Zoom_Left.png" onClick="zoom (g_chart_p, 'L');">
+        <img src="Zoom_Right.png" onClick="zoom (g_chart_p, 'R');">
+    </div>
+    <h2>Battery Charge</h2>
+      <canvas id="battery" width="950" height="240" style="float:left;"></canvas>
+      <div width="32" height="240" style="padding-top: 88;">
+        <img src="Zoom_Left.png" onClick="zoom (g_chart_b, 'L');">
+        <img src="Zoom_Right.png" onClick="zoom (g_chart_b, 'R');">
+    </div>
+  </body>
+</html>
