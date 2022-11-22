@@ -1,6 +1,6 @@
 # pysolis - Stand Alone HTML Monitor for Solis PV System
 
-##Introduction
+## Introduction
 
 This is a set of Python programs and HTML scripts to provide monitoring of a Solis S5-EH1P-L Hybrid
 Inverter, independent of the manufacturer's cloud based system. At present the system purely provides
@@ -34,7 +34,7 @@ One would expect that the power in and the power out from the above registers sh
 in practice I have found that there is always a difference, typically between 100-200W. Failing any
 other information I have assumed that this is power used by the inverter itself.
 
-##Configuration
+## Configuration
 
 I run the software on a Raspberry Pi. The Raspberry Pi ethernet port is wired directly to the
 ethernet port on the data logger. The Raspberry Pi is connected to the home router by WiFi.
@@ -58,16 +58,14 @@ The following folder structure is used:
   * solis_query.py - Obtain data from Modbus registers and save it to binary data files.
   * solis_daily.py - Generate daily summeries of inverter data.
   * log - Root folder for logged data
-    * <year>
-      * <month>
+    * Per year and per month sub-folders containing the data files.
   * http - Root folder for web interface
     * solis.html - Page providing live monitoring information
     * daily.html - Page providing data from previous days
     * monthly.html - Page providing monthly statistics
     * htbin - Folder for CGI programs
       * solis_data.py - A CGI program to provide inverter data to solis.html
-    * <year>
-      * <month> - Folder containing statistical plots
+    * Per year and per month folders containing statistical plots
   * bin - Python virtual environment folder
   * include - Python virtual environment folder
   * lib - Python virtual environment folder
@@ -94,21 +92,21 @@ of daylight saving time.
 This program reads the binary file created by solis_query.py for the previous day and generates the
 following plots (PNG files):
 
-* "html/yyyy/mm/Consume_yyyymmdd.png" - Pie chart showing the fraction of power consumed by the house
+* `html/yyyy/mm/Consume_yyyymmdd.png` - Pie chart showing the fraction of power consumed by the house
   or inverter comming from the solar panels, battery or grid.
-* "html/yyyy/mm/Produce_yyyymmdd.png" - Pie chart showing the fraction of power produced by the solar
+* `html/yyyy/mm/Produce_yyyymmdd.png` - Pie chart showing the fraction of power produced by the solar
   panels going to the house, inverter, battery or grid.
-* "html/yyyy/mm/Power_yyyymmdd.png" - Time history of power to the house, to the inverter, to or from
+* `html/yyyy/mm/Power_yyyymmdd.png` - Time history of power to the house, to the inverter, to or from
   the battery, to or from the grid.
-* "html/yyyy/mm/Battery_yyyymmdd.png" - Time history of battery state of charge.
-* "html/yyyy/mm/Monthly_Consume_yyyymm.png" - Power consumed by house and inverter for each day of the
+* `html/yyyy/mm/Battery_yyyymmdd.png` - Time history of battery state of charge.
+* `html/yyyy/mm/Monthly_Consume_yyyymm.png` - Power consumed by house and inverter for each day of the
   month.
-* "html/yyyy/mm/Monthly_Supply_yyyymm.png" - For each day of the month, the fraction of consumed power
+* `html/yyyy/mm/Monthly_Supply_yyyymm.png` - For each day of the month, the fraction of consumed power
   that was supplied by the solar panels, battery or grid.
-* "html/yyyy/mm/Monthly_Produce_yyyymm.png" - For each day of the month, the fraction of power generated
+* `html/yyyy/mm/Monthly_Produce_yyyymm.png` - For each day of the month, the fraction of power generated
   by the solar panels that went to the house, inverter, battery or grid.
 
-In order to generate the monthly plots it also generates a CSV file "html/yyyy/mm/Solis_Monthly_yyyymm.csv"
+In order to generate the monthly plots it also generates a CSV file `html/yyyy/mm/Solis_Monthly_yyyymm.csv`
 which contains one line for each day indicating how much power flowed from each source (solar panels,
 battery or grid) to each sink (house, inverter, battery, grid).
 
@@ -131,7 +129,7 @@ The following data is supplied in CSV format:
 * Grid export / import (W)
 * Battery state of charge (%)
 
-Once the page "solis.html" is loaded, it calls this program every 5 minutes (AJAX code) to update the
+Once the page `solis.html` is loaded, it calls this program every 5 minutes (AJAX code) to update the
 displayed statistics.
 
 The top level folder for the binary datais configured by a statement near the top of the Python code.
@@ -155,7 +153,7 @@ TODO: Convert the program to a CGI program providing browser download of the dec
 
 A webserver is required to serve the HTML pages and data. Most webservers could be used, but consistent
 with the small scale of the project, and the Python programming, the Python server is used. This is
-started by the script "http.sh":
+started by the script `http.sh`:
 
 ````
 #!/bin/sh
@@ -163,7 +161,7 @@ cd /home/pi/pysolis/html/
 /usr/bin/python3 -m http.server 8080 --cgi >/dev/null 2>&1 &
 ````
 
-Which is in turn started from crontab using "@reboot".
+Which is in turn started from crontab using `@reboot`.
 
 This is acceptable for a system that is only accessible from within the home network. If there is any exposure to the wider internet then a more secure server should be used.
 
