@@ -9,7 +9,7 @@ monitoring and does not attempt to take any action based upon the data.
 The code has been developed ad-hoc, and is not entirely consistent. Use at your own risk.
 
 The data is obtained via a Solis data logger with Ethernet connection. The particular data logger
-I have as serial number 1905XXXXXX and firmware version ME-121001-V1.0.6(202011261020). This data logger
+I have has serial number 1905XXXXXX and firmware version ME-121001-V1.0.6(202011261020). This data logger
 has port 30003 open and standard Modbus protocol may be used on this port to access Inverter registers.
 
 My understanding is that other Solis data loggers use port 8899, and some use a propriatory wrapper
