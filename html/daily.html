@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <title>Solar PV Daily Statistics</title>
@@ -282,6 +283,9 @@
       h1 {
           text-align: center;
       }
+      h2 {
+          clear: left;
+      }
       #menu {
           margin: auto;
           border-collapse: collapse;
@@ -293,6 +297,16 @@
       }
       form {
           margin: auto;
+      }
+      span.buttons {
+          width: 32px;
+          height: 240px;
+      }
+      span.buttons img {
+          display: block;
+      }
+      span.buttons img:first-child {
+          margin-top: 56px;
       }
     </style>
   </head>
@@ -373,7 +387,7 @@
     <h2>Consumption (By: <span style="color: #00FF00;">House</span>,
       <span style="color: #FFFF00;">Inverter</span>)</h2>
       <canvas id="consume" width="950" height="240" style="float:left;"></canvas>
-      <div width="32" height="240" style="padding-top: 56;">
+      <span class="buttons">
         <img src="Zoom_Up.png" onClick="zoom (g_chart_c, 'U');">
         <img src="Zoom_Down.png" onClick="zoom (g_chart_c, 'D');">
         <img src="Zoom_Left.png" onClick="zoom (g_chart_c, 'L');">
@@ -383,7 +397,7 @@
       <span style="color: #0000FF;">Battery</span>,
       <span style="color: #FF0000;">Grid</span>)</h2>
       <canvas id="supply" width="950" height="240" style="float:left;"></canvas>
-      <div width="32" height="240" style="padding-top: 56;">
+      <span class="buttons">
         <img src="Zoom_Up.png" onClick="zoom (g_chart_s, 'U');">
         <img src="Zoom_Down.png" onClick="zoom (g_chart_s, 'D');">
         <img src="Zoom_Left.png" onClick="zoom (g_chart_s, 'L');">
@@ -394,7 +408,7 @@
         <span style="color: #0000FF;">Battery</span>,
         <span style="color: #FF0000;">Grid</span>)</h2>
       <canvas id="produce" width="950" height="240" style="float:left;"></canvas>
-      <div width="32" height="240" style="padding-top: 56;">
+      <span class="buttons">
         <img src="Zoom_Up.png" onClick="zoom (g_chart_p, 'U');">
         <img src="Zoom_Down.png" onClick="zoom (g_chart_p, 'D');">
         <img src="Zoom_Left.png" onClick="zoom (g_chart_p, 'L');">

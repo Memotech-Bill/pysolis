@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <title>Solar PV Status</title>
@@ -195,8 +196,10 @@
           ctx.stroke ();
       }
       function kwString (p) {
-          if ( p > 0 ) return "+" + ( p / 1000 ).toFixed (3) + " kW";
-          else return ( p / 1000 ).toFixed (3) + " kW";
+          // if ( p > 0 ) return "+" + ( p / 1000 ).toFixed (3) + " kW";
+          // else return ( p / 1000 ).toFixed (3) + " kW";
+          if ( p > 0 ) return "+" + p.toString () + " W";
+          else return p.toString () + " W";
       }
       function draw () {
           lrow = g_data.length - 1;
@@ -276,6 +279,9 @@
       h1 {
           text-align: center;
       }
+      h2 {
+          clear: left;
+      }
       #menu {
           margin: auto;
           border-collapse: collapse;
@@ -298,6 +304,16 @@
           border: 3px solid black;
           padding: 20px;
       }
+      span.buttons {
+          width: 32px;
+          height: 240px;
+      }
+      span.buttons img {
+          display: block;
+      }
+      span.buttons img:first-child {
+          margin-top: 56px;
+      }
     </style>
   </head>
   <body onload="initialise ();">
@@ -317,7 +333,7 @@
     <h2>Consumption (<span style="color: #00FF00;">House</span>,
       <span style="color: #FFFF00;">Inverter</span>)</h2>
       <canvas id="consume" width="950" height="240" style="float:left;"></canvas>
-      <div width="32" height="240" style="padding-top: 56;">
+      <span class="buttons">
         <img src="Zoom_Up.png" onClick="zoom (g_chart_c, 'U');">
         <img src="Zoom_Down.png" onClick="zoom (g_chart_c, 'D');">
         <img src="Zoom_Left.png" onClick="zoom (g_chart_c, 'L');">
@@ -327,7 +343,7 @@
       <span style="color: #0000FF;">Battery</span>,
       <span style="color: #FF0000;">Grid</span>)</h2>
       <canvas id="supply" width="950" height="240" style="float:left;"></canvas>
-      <div width="32" height="240" style="padding-top: 56;">
+      <span class="buttons">
         <img src="Zoom_Up.png" onClick="zoom (g_chart_s, 'U');">
         <img src="Zoom_Down.png" onClick="zoom (g_chart_s, 'D');">
         <img src="Zoom_Left.png" onClick="zoom (g_chart_s, 'L');">
@@ -338,7 +354,7 @@
         <span style="color: #0000FF;">Battery</span>,
         <span style="color: #FF0000;">Grid</span>)</h2>
       <canvas id="produce" width="950" height="240" style="float:left;"></canvas>
-      <div width="32" height="240" style="padding-top: 56;">
+      <span class="buttons">
         <img src="Zoom_Up.png" onClick="zoom (g_chart_p, 'U');">
         <img src="Zoom_Down.png" onClick="zoom (g_chart_p, 'D');">
         <img src="Zoom_Left.png" onClick="zoom (g_chart_p, 'L');">
@@ -346,7 +362,7 @@
     </div>
     <h2>Battery Charge</h2>
       <canvas id="battery" width="950" height="240" style="float:left;"></canvas>
-      <div width="32" height="240" style="padding-top: 88;">
+      <span class="buttons">
         <img src="Zoom_Left.png" onClick="zoom (g_chart_b, 'L');">
         <img src="Zoom_Right.png" onClick="zoom (g_chart_b, 'R');">
     </div>
