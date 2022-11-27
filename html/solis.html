@@ -30,7 +30,7 @@
       function scale (data, irow, ncol, ntick, zoom) {
           let i;
           let nrow = data.length;
-          let max = 1;
+          let max = 100;
           for ( i = irow; i < nrow; ++i ) {
               if ( data[i][ncol] > max ) max = data[i][ncol];
           }
@@ -105,22 +105,22 @@
           let vmk = scale (data, irow, chart.ncol, 5, chart.vert);
           let scl = hgt / (vmk.ntick * vmk.tick);
           let xsc = 3600 * chart.horz / wth;
-          if ( irow > 0 ) row1 = chart.map (data[irow-1]);
           row2 = chart.map (data[irow]);
+          if ( irow > 0 ) row1 = chart.map (data[irow-1]);
+          else row1 = row2;
           for (i = 0; i < wth; ++i) {
               let t = xsc * i + tSta;
-              if ( t > data[irow][0] ) {
+              while ( t > data[irow][0] ) {
                   row1 = row2;
                   ++irow;
                   if ( irow >= nrow ) break;
                   row2 = chart.map (data[irow]);
               }
+              if ( irow >= nrow ) break;
               if ( irow == 0 ) {
-                  w2 = ( t + 5 - data[irow][0] ) / 5;
-                  if ( w2 < 0 ) w2 = 0;
-                  iRed = Math.trunc (scl * w2 * row2[0]);
-                  iBlue = Math.trunc (scl * w2 * row2[1]);
-                  iGreen = Math.trunc (scl * w2 * row2[2]);
+                  iRed = Math.trunc (scl * row2[0]);
+                  iBlue = Math.trunc (scl * row2[1]);
+                  iGreen = Math.trunc (scl * row2[2]);
               } else {
                   let w2 = ( t - data[irow-1][0] ) / ( data[irow][0] - data[irow-1][0] );
                   let w1 = 1 - w2;
