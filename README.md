@@ -42,7 +42,7 @@ No sooner is the connection opened than it is closed again by the data logger be
 be requested.
 
 Therefore to provide a fallback, the data being sent to the cloud is captured as it passes through.
-Again, all the available data is being captured but only the same small subset is being captured.
+Again, all the available data is being captured but only the same small subset is being displayed.
 
 ## Configuration
 
