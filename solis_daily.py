@@ -35,6 +35,10 @@ skBatt = 2
 skGrid = 3
 
 def Decode1 (rec):
+    if ((rec[0] != 0xAA) or (rec[1] != 0x55) or (rec[-2] != 0x55) or (rec[-1] != 0xAA)):
+        sys.stderr.write ('Invalid Modbus record: 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X}'
+                          .format (rec[0], rec[1], rec[-2], rec[-1]))
+        sys.exit (1)
     t = struct.unpack ('<Q', rec[2:10])[0]
     w = struct.unpack ('<HH', rec[64:68])               # Total DC Input Power (W)
     solar = ( w[0] << 16 ) | w[1]
@@ -52,6 +56,10 @@ def Decode1 (rec):
     return [t, solar, load, invtr, batt, grid, bsoc]
 
 def Decode2 (rec):
+    if ((rec[0] != 0xA5) or (rec[1] != 0x5A) or (rec[-2] != 0x5A) or (rec[-1] != 0xA5)):
+        sys.stderr.write ('Invalid Cloud Capture record: 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X}'
+                          .format (rec[0], rec[1], rec[-2], rec[-1]))
+        sys.exit (1)
     t = struct.unpack ('<Q', rec[4:12])[0]
     rec = rec[12:262]
     solar = struct.unpack ('<H', rec[108:110])[0]       # Solar Power watts
@@ -111,20 +119,25 @@ class Daily:
         # print (self.data)
         self.data = np.array (self.data)
 
-        self.use = [[0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]]
+        self.use = np.zeros ((3, 4))
         src = [0.0, 0.0, 0.0]
         sink = [0.0, 0.0, 0.0, 0.0]
         tday = calendar.timegm (tm)
         for i in range (ntime):
+            # Work around an integer arithmetic bug in Python 3.9.2 - Convert times to float
             if ( i == 0 ):
-                t2 = ( self.data[0, rdTime] + self.data[1, rdTime] ) // 2
-                dt = t2 - tday
+                # t2 = ( self.data[0, rdTime] + self.data[1, rdTime] ) // 2
+                t2 = ( float (self.data[0, rdTime]) + float (self.data[1, rdTime]) ) / 2
+                # dt = t2 - tday
+                dt = t2 - float (tday)
             elif ( i == ntime - 1 ):
                 t1 = t2
-                dt = tday + 86400 - t1
+                # dt = tday + 86400 - t1
+                dt = float(tday) + 86400 - t1
             else:
                 t1 = t2
-                t2 = ( self.data[i, rdTime] + self.data[i+1, rdTime] ) // 2
+                # t2 = ( self.data[i, rdTime] + self.data[i+1, rdTime] ) // 2
+                t2 = ( float (self.data[i, rdTime]) + float (self.data[i+1, rdTime]) ) / 2
                 dt = t2 - t1
             src[scSolar] = self.data[i, rdSolar]
             if ( self.data[i, rdGrid] >= 0.0 ):
@@ -146,17 +159,15 @@ class Daily:
                     continue
                 for sk in [skGrid, skBatt, skInvtr, skHouse]:
                     if ( src[sc] > sink[sk] ):
-                        self.use[sc][sk] += dt * sink[sk]
+                        self.use[sc, sk] += dt * sink[sk]
                         src[sc] -= sink[sk]
                         sink[sk] = 0.0
                     else:
-                        self.use[sc][sk] += dt * src[sc]
+                        self.use[sc, sk] += dt * src[sc]
                         sink[sk] -= src[sc]
                         src[sc] = 0.0
                         break
-        for sc in [scSolar, scBatt, scGrid]:
-            for sk in [skGrid, skBatt, skInvtr, skHouse]:
-                self.use[sc][sk] /= 3.6E6
+        self.use /= 3.6E6
 
     def Log (self, sDir, tm):
         sFile = os.path.join (sDir, 'Solis_Monthly_{:04d}{:02d}.csv'.format (tm.tm_year, tm.tm_mon))
@@ -173,8 +184,8 @@ class Daily:
         f.write ('{:d},{:d},{:d}'.format (tm.tm_year, tm.tm_mon, tm.tm_mday))
         for sc in [scSolar, scBatt, scGrid]:
             for sk in [skHouse, skInvtr, skBatt, skGrid]:
-                f.write (',{:5.3f}'.format (self.use[sc][sk]))
-        f.write ('\n')
+                f.write (',{:5.3f}'.format (self.use[sc, sk]))
+        f.write (',{:d},{:d}\n'.format (self.data[:, rdSoC].min (), self.data[:, rdSoC].max ()))
         f.close ()
 
     def PowerPlt (self, sDir, tm):
@@ -190,6 +201,7 @@ class Daily:
         ax.plot (self.data[:,rdTime], -self.data[:,rdGrid], label='Grid', color = '#FF0000')
         ax.set_xlabel ('Time')
         ax.set_ylabel ('Power (W)')
+        ax.yaxis.grid (which='major')
         ax.set_title (time.strftime ('%d %B %Y', tm))
         ax.legend (loc='upper center', ncol=4)
         ax.xaxis.set_major_formatter (ticker.FuncFormatter(TimeFmt))
@@ -208,6 +220,7 @@ class Daily:
         ax.plot (self.data[:,rdTime], self.data[:,rdSoC], label='State of Charge', color='#0000FF')
         ax.set_xlabel ('Time')
         ax.set_ylabel ('State of Charge')
+        ax.yaxis.grid (which='major')
         ax.set_title (time.strftime ('%d %B %Y', tm))
         ax.xaxis.set_major_formatter (ticker.FuncFormatter(TimeFmt))
         ax.xaxis.set_major_locator (ticker.LinearLocator (numticks = 13))
@@ -216,15 +229,17 @@ class Daily:
                                    .format (tm.tm_year, tm.tm_mon, tm.tm_mday)),
                      format = 'png')
 
+    def Scaler (self, s):
+        return lambda x: '{:5.3f} kWh'.format (s * x / 100)
+
     def ConsumePie (self, sDir, tm):
         fig = plt.figure (figsize=(4.5, 4.5), dpi = 100, facecolor='w')
         ax = fig.add_axes ([0.05, 0.05, 0.9, 0.9])
-        ax.pie ([self.use[scSolar][skHouse] + self.use[scSolar][skInvtr],
-                 self.use[scBatt][skHouse] + self.use[scBatt][skInvtr],
-                 self.use[scGrid][skHouse] + self.use[scGrid][skInvtr]],
+        consume = self.use[:, skHouse] + self.use[:, skInvtr]
+        ax.pie (consume,
                 labels = ['Solar', 'Battery', 'Grid'],
                 colors = ['#00FF00', '#0000FF', '#FF0000'],
-                autopct = '%5.3f kWh',
+                autopct = self.Scaler (consume.sum ()),
                 radius = 1.0,
                 center = (2.25, 2.25))
         ax.set_title (time.strftime ('%d %B %Y', tm) + ' Consumed Power')
@@ -238,7 +253,7 @@ class Daily:
         ax.pie (self.use[scSolar],
                 labels = ['House', 'Inverter', 'Battery', 'Grid'],
                 colors = ['#00FF00', '#FFFF00', '#0000FF', '#FF0000'],
-                autopct = '%5.3f kWh',
+                autopct = self.Scaler (self.use[scSolar].sum ()),
                 radius = 1.0,
                 center = (2.25, 2.25))
         ax.set_title (time.strftime ('%d %B %Y', tm) + ' Produced Power')
@@ -261,9 +276,10 @@ class Monthly:
             nrow = 0
             self.days = []
             self.data = [[[], [], [], []], [[], [], [], []], [[], [], [], []]]
+            self.soc = []
             for row in csv.reader (f):
                 nrow += 1
-                if (( nrow > 1 ) and ( len (row) == 15 )):
+                if (( nrow > 1 ) and ( len (row) >= 15 )):
                     self.days.append (int (row[2]))
                     icol = 3
                     for sc in [scSolar, scBatt, scGrid]:
@@ -271,8 +287,15 @@ class Monthly:
                         for sk in [skHouse, skInvtr, skBatt, skGrid]:
                             self.data[sc][sk].append (float (row[icol]))
                             icol += 1
+                    if ( len (row) >= 17 ):
+                        socmin = int (row[15])
+                        socmax = int (row[16])
+                        self.soc.append ((socmin, socmax - socmin))
+                    else:
+                        self.soc.append ((0, 0))
         self.days = np.array (self.days)
         self.data = np.array (self.data)
+        self.soc = np.array (self.soc)
         self.ndays = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)[tm.tm_mon - 1]
         if (( tm.tm_mon == 2 ) and ( tm.tm_year % 100 == 0 )):
             self.ndays = 29
@@ -285,6 +308,7 @@ class Monthly:
         ax.bar (self.days, consume[skInvtr, :], color='#FFFF00', label='Inverter')
         ax.bar (self.days, consume[skHouse, :], bottom=consume[skInvtr, :], color='#00FF00', label='House')
         ax.xaxis.set_major_locator (ticker.MaxNLocator (steps=[1, 2, 5, 10]))
+        ax.yaxis.grid (which='major')
         ax.set_xlabel ('Day of the Month')
         ax.set_ylabel ('Energy (kWh)')
         ax.set_title ('Energy Consumption ' + time.strftime ('%B %Y', tm))
@@ -302,6 +326,7 @@ class Monthly:
         ax.bar (self.days, supply[scSolar, :], bottom=supply[scGrid, :] + supply[scBatt, :],
                 color='#00FF00', label='Solar')
         ax.xaxis.set_major_locator (ticker.MaxNLocator (steps=[1, 2, 5, 10]))
+        ax.yaxis.grid (which='major')
         ax.set_xlabel ('Day of the Month')
         ax.set_ylabel ('Energy (kWh)')
         ax.set_title ('Energy Supply ' + time.strftime ('%B %Y', tm))
@@ -324,10 +349,46 @@ class Monthly:
                 + self.data[scSolar, skInvtr, :],
                 color = '#00FF00', label='House')
         ax.xaxis.set_major_locator (ticker.MaxNLocator (steps=[1, 2, 5, 10]))
+        ax.yaxis.grid (which='major')
         ax.set_xlabel ('Day of the Month')
         ax.set_ylabel ('Energy (kWh)')
         ax.set_title ('Energy Production ' + time.strftime ('%B %Y', tm))
         fig.savefig (os.path.join (sDir, 'Monthly_Produce_{:04d}{:02d}.png'
+                                   .format (tm.tm_year, tm.tm_mon)),
+                     format = 'png')
+
+    def GridPlt (self, sDir, tm):
+        fig = plt.figure (figsize=(10.0, 4.5), dpi = 100, facecolor='w')
+        ax = fig.add_axes ([0.1, 0.1, 0.85, 0.85])
+        ax.set_xlim (0.5, self.ndays + 0.5)
+        ax.bar (self.days, self.data[scGrid, skBatt, :], color='#0000FF', label='Battery')
+        ax.bar (self.days, self.data[scGrid, skInvtr, :], bottom=self.data[scGrid, skBatt, :],
+                color = '#FFFF00', label='Inverter')
+        ax.bar (self.days, self.data[scGrid, skHouse, :],
+                bottom=self.data[scGrid, skBatt, :] + self.data[scGrid, skInvtr, :],
+                color = '#00FF00', label='House')
+        ax.xaxis.set_major_locator (ticker.MaxNLocator (steps=[1, 2, 5, 10]))
+        ax.yaxis.grid (which='major')
+        ax.set_xlabel ('Day of the Month')
+        ax.set_ylabel ('Energy (kWh)')
+        ax.set_title ('Grid Power Use ' + time.strftime ('%B %Y', tm))
+        fig.savefig (os.path.join (sDir, 'Monthly_Grid_{:04d}{:02d}.png'
+                                   .format (tm.tm_year, tm.tm_mon)),
+                     format = 'png')
+
+    def BatteryPlt (self, sDir, tm):
+        fig = plt.figure (figsize=(10.0, 4.5), dpi = 100, facecolor='w')
+        ax = fig.add_axes ([0.1, 0.1, 0.85, 0.85])
+        ax.set_xlim (0.5, self.ndays + 0.5)
+        ax.set_ylim (0.0, 100.0)
+        ax.xaxis.set_major_locator (ticker.MaxNLocator (steps=[1, 2, 5, 10]))
+        ax.yaxis.set_major_formatter (ticker.PercentFormatter ())
+        ax.yaxis.grid (which='major')
+        ax.set_xlabel ('Day of the Month')
+        ax.set_ylabel ('State of Charge (%)')
+        ax.set_title ('Battery Charge ' + time.strftime ('%B %Y', tm))
+        ax.bar (self.days, self.soc[:, 1], bottom=self.soc[:, 0], color='#0000FF', label='Battery')
+        fig.savefig (os.path.join (sDir, 'Monthly_Battery_{:04d}{:02d}.png'
                                    .format (tm.tm_year, tm.tm_mon)),
                      format = 'png')
 
@@ -336,6 +397,8 @@ class Monthly:
         self.ConsumePlt (sDir, tm)
         self.SupplyPlt (sDir, tm)
         self.ProducePlt (sDir, tm)
+        self.GridPlt (sDir, tm)
+        self.BatteryPlt (sDir, tm)
 
 def Main ():
     if ( len (sys.argv) > 1 ):
