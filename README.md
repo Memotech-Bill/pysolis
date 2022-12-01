@@ -16,9 +16,6 @@ My understanding is that other Solis data loggers use port 8899, and some use a 
 around the Modbus protocol. See https://github.com/jmccrohan/pysolarmanv5 for how to obtain data in
 this case.
 
-Details of the registers in the inverter have been taken from
-https://www.scss.tcd.ie/coghlan/Elios4you/RS485_MODBUS-Hybrid-BACoghlan-201811228-1854.pdf .
-
 Most of the documented registers are being captured, but at present only the following
 are being displayed.
 
@@ -122,9 +119,6 @@ The captured data is recorded as records in files named `yyyy/mm/Solis_Rnnn_yyyy
 nnn is the length of the data packet being sent to the cloud. Only the data in the 250 byte
 records is currently being used.
 
-Information on the contents of this record was obtained from:
-https://community.home-assistant.io/t/getting-data-from-solis-inverter/302189/30.
-
 Configuring the program to work without root permissions was based upon:
 https://web.archive.org/web/20160403142820/http://peternixon.net/news/2012/01/28/configure-tcpdump-work-non-root-user-opensuse-using-file-system-capabilities/
 
@@ -221,3 +215,329 @@ Which is in turn started from crontab using `@reboot`.
 This is acceptable for a system that is only accessible from within the home network. If there is any
 exposure to the wider internet then a more secure server should be used.
 
+## File Formats
+
+### Produced by `solis_query.py`
+
+This file contains 306 byte records consisting of:
+
+* 10 byte header
+* 143 Modbus values (2 bytes each)
+* 10 byte footer
+
+The Modbus values are stored in the file in little-endian format. However it turns out that many of the
+data values occupy two Modbus registers and these are in big-endian order. As a result, 32-bit values
+are in a mixed order and have to be reassembled as:
+
+    b1 | b0 | b3 | b2
+
+Details of the registers in the inverter have been taken from
+https://www.scss.tcd.ie/coghlan/Elios4you/RS485_MODBUS-Hybrid-BACoghlan-201811228-1854.pdf .
+
+The complete contents of a record is described in the following table:
+
+| Position | Length | Endian | Signed |  Modbus  | Description                                                  |
+|:--------:|:------:|:------:|:------:|:--------:|:-------------------------------------------------------------|
+|      0   |    1   |    -   |    N   |   -      | 0xAA - Start of record                                       |
+|      1   |    1   |    -   |    N   |   -      | 0x55 - Start of record                                       |
+|      2   |    4   |    L   |    N   |   -      | UTC time query started (seconds since 1 Jan 1970)            |
+|     10   |    2   |    L   |    N   | 33022    | System time year (00-99)                                     |
+|     12   |    2   |    L   |    N   | 33023    | System time month (01-12)                                    |
+|     14   |    2   |    L   |    N   | 33024    | System time day                                              |
+|     16   |    2   |    L   |    N   | 33025    | System time hour                                             |
+|     18   |    2   |    L   |    N   | 33026    | System time minute                                           |
+|     20   |    2   |    L   |    N   | 33027    | System time second                                           |
+|     22   |    2   |    L   |    N   | 33028    | Reserved                                                     |
+|     24   |    4   |    M   |    N   | 33029-30 | Inverter total power generation (kWh)                        |
+|     28   |    4   |    M   |    N   | 33031-32 | Inverter power generation in the month (kWh)                 |
+|     32   |    4   |    M   |    N   | 33033-34 | Inverter last month's power generation (kWh)                 |
+|     36   |    2   |    L   |    N   | 33035    | Inverter power generation today (kWh)                        |
+|     38   |    2   |    L   |    N   | 33036    | Inverter yesterday's power generation (kWh)                  |
+|     40   |    4   |    M   |    N   | 33037-38 | Inverter power generation this year (kWh)                    |
+|     44   |    4   |    M   |    N   | 33039-40 | Inverter last year's power generation (kWh)                  |
+|     48   |    2   |    L   |    N   | 33049    | DC voltage 1 (0.1V)                                          |
+|     50   |    2   |    L   |    N   | 33050    | DC current 1 (0.1A)                                          |
+|     52   |    2   |    L   |    N   | 33051    | DC voltage 2 (0.1V)                                          |
+|     54   |    2   |    L   |    N   | 33052    | DC current 2 (0.1A)                                          |
+|     56   |    2   |    L   |    N   | 33053    | DC voltage 3 (0.1V)                                          |
+|     58   |    2   |    L   |    N   | 33054    | DC current 3 (0.1A)                                          |
+|     60   |    2   |    L   |    N   | 33055    | DC voltage 4 (0.1V)                                          |
+|     62   |    2   |    L   |    N   | 33056    | DC current 4 (0.1A)                                          |
+|     64   |    4   |    M   |    N   | 33057-58 | Total DC output power (W)                                    |
+|     68   |    2   |    L   |    N   | 33071    | DC bus voltage (0.1V)                                        |
+|     70   |    2   |    L   |    N   | 33072    | DC bus half voltage (0.1V)                                   |
+|     72   |    2   |    L   |    N   | 33073    | Phase A voltage (0.1V)                                       |
+|     74   |    2   |    L   |    N   | 33074    | Phase B voltage (0.1V)                                       |
+|     76   |    2   |    L   |    N   | 33075    | Phase C voltage (0.1V)                                       |
+|     78   |    2   |    L   |    N   | 33076    | Phase A current (0.1A)                                       |
+|     80   |    2   |    L   |    N   | 33077    | Phase B current (0.1A)                                       |
+|     82   |    2   |    L   |    N   | 33078    | Phase C current (0.1A)                                       |
+|     84   |    4   |    M   |    Y   | 33079-80 | Active power (W)                                             |
+|     88   |    4   |    M   |    Y   | 33081-82 | Reactive power (VA)                                          |
+|     92   |    4   |    M   |    Y   | 33083-84 | Apparent power (VA)                                          |
+|     96   |    2   |    L   |    N   | 33091    | Standard working mode                                        |
+|     98   |    2   |    L   |    N   | 33092    | National standard                                            |
+|    100   |    2   |    L   |    N   | 33093    | Inverter temperature (0.1C)                                  |
+|    102   |    2   |    L   |    N   | 33094    | Grid frequency (0.01Hz)                                      |
+|    104   |    2   |    L   |    N   | 33095    | Current state of the inverter                                |
+|    106   |    4   |    M   |    Y   | 33100-01 | Limited active power adjustment rated power output value (W) |
+|    110   |    4   |    M   |    Y   | 33102-03 | Reactive power regulation rated power output value (VA)      |
+|    114   |    2   |    L   |    N   | 33104    | Actual power limit (0.01%)                                   |
+|    116   |    2   |    L   |    Y   | 33105    | Actual power factor adjustment value (0.01)                  |
+|    118   |    2   |    L   |    Y   | 33106    | Reactive power (0.01%)                                       |
+|    120   |    4   |    M   |    N   | 33126-27 | Electricity meter total active power generation (Wh)         |
+|    124   |    2   |    L   |    N   | 33128    | Meter voltage (0.1V)                                         |
+|    126   |    2   |    L   |    N   | 33129    | Meter current (0.1A)                                         |
+|    128   |    4   |    M   |    Y   | 33130-31 | Meter active power (W)                                       |
+|    132   |    2   |    L   |    N   | 33132    | Energy storage control switch                                |
+|    134   |    2   |    L   |    N   | 33133    | Battery voltage (0.1V)                                       |
+|    136   |    2   |    L   |    N   | 33134    | Battery current (0.1A) (see next for sign)                   |
+|    138   |    2   |    L   |    N   | 33135    | 0 = Battery charging, 1 = Battery discharging                |
+|    140   |    2   |    L   |    N   | 33136    | LLC bus voltage (0.1V)                                       |
+|    142   |    2   |    L   |    N   | 33137    | Bypass AC voltage (0.1V)                                     |
+|    144   |    2   |    L   |    N   | 33138    | Bypass AC current (0.1A)                                     |
+|    146   |    2   |    L   |    N   | 33139    | Battery state of charge (%)                                  |
+|    148   |    2   |    L   |    N   | 33140    | Battery state of health (%)                                  |
+|    150   |    2   |    L   |    N   | 33141    | BMS battery voltage (0.1V)                                   |
+|    152   |    2   |    L   |    N   | 33142    | BMS battery current (0.1A)                                   |
+|    154   |    2   |    L   |    N   | 33143    | BMS battery charge current limit (0.1A)                      |
+|    156   |    2   |    L   |    N   | 33144    | BMS battery discharge current limit (0.1A)                   |
+|    158   |    2   |    L   |    N   | 33145    | BMS battery failure information 1                            |
+|    160   |    2   |    L   |    N   | 33146    | BMS battery failure information 2                            |
+|    162   |    2   |    L   |    N   | 33147    | House load power (W)                                         |
+|    164   |    2   |    L   |    N   | 33148    | Bypass load power (W)                                        |
+|    166   |    4   |    M   |    N   | 33149-50 | Battery power (W) (For sign see Modbus register 33135)       |
+|    170   |    4   |    M   |    N   | 33161-62 | Total battery charge (kWh)                                   |
+|    174   |    2   |    L   |    N   | 33163    | Battery charge today (0.1kWh)                                |
+|    176   |    2   |    L   |    N   | 33164    | Battery charge yesterday (0.1kWh)                            |
+|    178   |    4   |    M   |    N   | 33165-66 | Total battery discharge (kWh)                                |
+|    182   |    2   |    L   |    N   | 33167    | Battery discharge capacity (0.1kWh)                          |
+|    184   |    2   |    L   |    N   | 33168    | Battery discharge yesterday (0.1kWh)                         |
+|    186   |    4   |    M   |    N   | 33169-70 | Total power imported from grid (kWh)                         |
+|    190   |    2   |    L   |    N   | 33171    | Grid power imported today (0.1kWh)                           |
+|    192   |    2   |    L   |    N   | 33172    | Grid power imported yesterday (0.1kWh)                       |
+|    194   |    4   |    M   |    N   | 33173-74 | Total power exported to grid (kWh)                           |
+|    198   |    2   |    L   |    N   | 33175    | Grid power exported today (0.1kWh)                           |
+|    200   |    2   |    L   |    N   | 33176    | Grid power exported yesterday (0.1kWh)                       |
+|    202   |    4   |    M   |    N   | 33177-78 | Total house load (kWh)                                       |
+|    206   |    2   |    L   |    N   | 33179    | House load today (0.1kWh)                                    |
+|    208   |    2   |    L   |    N   | 33180    | House load yesterday (0.1kWh)                                |
+|    210   |    2   |    L   |    N   | 33251    | Meter AC voltage A (0.1V)                                    |
+|    212   |    2   |    L   |    N   | 33252    | Meter AC current A (0.01A)                                   |
+|    214   |    2   |    L   |    N   | 33253    | Meter AC voltage B (0.1V)                                    |
+|    216   |    2   |    L   |    N   | 33254    | Meter AC current B (0.01A)                                   |
+|    218   |    2   |    L   |    N   | 33255    | Meter AC voltage C (0.1V)                                    |
+|    220   |    2   |    L   |    N   | 33256    | Meter AC current C (0.01A)                                   |
+|    222   |    4   |    M   |    Y   | 33257-58 | Meter active power A (W)                                     |
+|    226   |    4   |    M   |    Y   | 33259-60 | Meter active power B (W)                                     |
+|    230   |    4   |    M   |    Y   | 33261-62 | Meter active power C (W)                                     |
+|    234   |    4   |    M   |    Y   | 33263-64 | Meter total active power (W)                                 |
+|    238   |    4   |    M   |    Y   | 33265-66 | Meter reactive power A (VA)                                  |
+|    242   |    4   |    M   |    Y   | 33267-68 | Meter reactive power B (VA)                                  |
+|    246   |    4   |    M   |    Y   | 33269-70 | Meter reactive power C (VA)                                  |
+|    250   |    4   |    M   |    Y   | 33271-72 | Meter total reactive power (VA)                              |
+|    254   |    4   |    M   |    Y   | 33273-74 | Meter apparent power A (VA)                                  |
+|    258   |    4   |    M   |    Y   | 33275-76 | Meter apparent power B (VA)                                  |
+|    262   |    4   |    M   |    Y   | 33277-78 | Meter apparent power C (VA)                                  |
+|    266   |    4   |    M   |    Y   | 33279-80 | Meter total apparent power (VA)                              |
+|    270   |    2   |    L   |    Y   | 33281    | Meter power factor                                           |
+|    272   |    2   |    L   |    N   | 33282    | Meter grid frequency (0.01Hz)                                |
+|    274   |    4   |    M   |    N   | 33283-84 | Meter total active power imported from grid (0.01kWh)        |
+|    278   |    4   |    M   |    N   | 33284-86 | Meter total active power exported to grid (0.01kWWh)         |
+|    282   |    2   |    L   |    N   | 33115    | Flags                                                        |
+|    284   |    2   |    L   |    N   | 33116    | Fault code 1                                                 |
+|    286   |    2   |    L   |    N   | 33117    | Fault code 2                                                 |
+|    288   |    2   |    L   |    N   | 33118    | Fault code 3                                                 |
+|    290   |    2   |    L   |    N   | 33119    | Fault code 4                                                 |
+|    292   |    2   |    L   |    N   | 33120    | Fault code 5                                                 |
+|    294   |    2   |    L   |    N   | 33121    | Working status                                               |
+|    296   |    4   |    L   |    N   |   -      | UTC time query completed (seconds since 1 Jan 1970)          |
+|    304   |    1   |    -   |    -   |   -      | 0x55 - End of record                                         |
+|    305   |    1   |    -   |    -   |   -      | 0xAA - End of record                                         |
+
+#### 250 byte Cloud record
+
+The program `solis-capture` makes copies of all the messages sent by the inverter to the Solis Cloud. The inverter
+sends a number different types of message, each of a diffeent length. The proggram saves each message type in a
+seperate file. Each record in a file consists of:
+
+* 12 byte header
+* The complete message sent to the cloud
+* 2 byte footer
+
+The most useful message is 250 bytes long, and is stored in files named `Solis_R250_yyyymmdd.cap`.
+
+Much of the information on the contents of this record was derived from:
+https://community.home-assistant.io/t/getting-data-from-solis-inverter/302189/30.
+
+The following table describes most of the data in each record:
+
+|   File   | Transmitted |        |        |        |                                                        |          |
+| Position |   Position  | Length | Endian | Signed | Description                                            |  Modbus  |
+|:--------:|:-----------:|:------:|:------:|:------:|:------------------------------------------------------:|:--------:|
+|      0   |      -      |    1   |    -   |    -   | 0xA5 - Start of record                                 |    -     |
+|      1   |      -      |    1   |    -   |    -   | 0x5A - Start of record                                 |    -     |
+|      2   |      -      |    2   |    L   |    N   | 250 - Length of transmitted record                     |    -     |
+|      4   |      -      |    8   |    L   |    N   | UTC time record was captured (seconds since 1 Jan 1970 |    -     |
+|     12   |       0     !    1   |    -   |    -   | 0xA5 - Start of transmission                           |    -     |
+|     13   |       1     |    2   |    L   |    N   | 237 - Record type                                      |    -     |
+|     15   |       3     |    2   |    ?   |    ?   | Flags ?                                                |    -     |
+|     17   |       5     |    1   |    -   |    N   | Transmission counter ?                                 |    -     |
+|     18   |       6     |    1   |    -   |    N   | Acknowledgement counter ?                              |    -     |
+|     19   |       7     |    4   |    L   |    N   | Logger serial number                                   |    -     |
+|     23   |      11     |    3   |    ?   |    ?   | Flags ?                                                |    -     |
+|     26   |      14     |    4   |    L   |    N   | Inverter uptime (seconds)                              |    -     |
+|     30   |      18     |    4   |    L   |    N   | Logger uptime (seconds)                                |    -     |
+|     34   |      22     |    4   |    L   |    N   | Inverter reset time (seconds since 1 Jan 1970)         |    -     |
+|     38   |      26     |    2   |    L   |    ?   | Timezone ?                                             |    -     |
+|     40   |      28     |    4   |    L   |    N   | Message counter ?                                      |    -     |
+|     44   |      32     |   16   |    -   |    -   | Inverter serial number (ASCII coded)                   |    -     |
+|     60   |      48     |    2   |    L   |    ?   | Inverter operating temperature (0.1C)                  |    -     |
+|     62   |      50     |    2   |    L   |    N   | PV 1 voltage (0.1V)                                    | 33049    |
+|     64   |      52     |    2   |    L   |    N   | PV 2 voltage (0.1V)                                    | 33051    |
+|     66   |      54     |    2   |    L   |    N   | PV 1 current (0.1A)                                    | 33050    |
+|     68   |      56     |    2   |    L   |    N   | PV 2 current (0.1A)                                    | 33052    |
+|     70   |      58     |    2   |    L   |    N   | Phase A current (0.1A)                                 | 33076    |
+|     72   |      60     |    2   |    L   |    N   | Phase B current (0.1A)                                 | 33077    |
+|     74   |      62     |    2   |    L   |    N   | Phase C current (0.1A)                                 | 33078    |
+|     76   |      64     |    2   |    L   |    N   | Phase A voltage (0.1V)                                 | 33073    |
+|     78   |      66     |    2   |    L   |    N   | Phase B voltage (0.1V)                                 | 33074    |
+|     80   |      68     |    2   |    L   |    N   | Phase C voltage (0.1V)                                 | 33075    |
+|     82   |      70     |    2   |    L   |    N   | AC Frequency (0.01Hz)                                  | 33094    |
+|     84   |      72     |    4   |    L   |    Y   | Inverter power output (W)                              | 33079-80 |
+|     88   |      76     |    4   |    L   |    N   | Inverter power generation today (0.1kWh)               | 33035    |
+|     92   |      80     |    4   |    L   |    N   | Total inverter power generation (0.1kWh)               | 33029-30 |
+|     96   |      84     |    4   |    L   |    ?   | Unknown - Always zero ?                                |    -     |
+|    100   |      88     |    4   |    L   |    ?   | Unknown - Always 3 ?                                   |    -     |
+|    104   |      92     |    4   |    L   |    ?   | Unknown - Always zero ?                                |    -     |
+|    108   |      96     |    4   |    L   |    ?   | Unknown - Always zero ?                                |    -     |
+|    112   |     100     |    4   |    L   |    ?   | Unknown - Always zero ?                                |    -     |
+|    116   |     104     |    4   |    L   |    ?   | Unknown - Always zero ?                                |    -     |
+|    120   |     108     |    4   |    L   |    N   | Solar power (W)                                        | 33057-58 |
+|    124   |     112     |    4   |    L   |    N   | Yield this month (kWh)                                 | 33031-32 |
+|    128   |     116     |    4   |    L   |    N   | Yield last month (kWh)                                 | 33033-34 |
+|    132   |     120     |    2   |    L   |    N   | Yield yesterday (0.1kWh)                               | 33036    |
+|    134   |     122     |    4   |    L   |    N   | Yield this year (kWh)                                  | 33037-38 |
+|    138   |     126     |    4   |    L   |    ?   | Unknown - Always zero ?                                |    -     |
+|    142   |     130     |    4   |    L   |    Y   | Reactive power (VA)                                    | 33081-82 |
+|    146   |     134     |    4   |    L   |    Y   | Apparent power (VA)                                    | 33083-84 |
+|    150   |     138     |    2   |    L   |    ?   | Unknown - Always 1000 ?                                |    -     |
+|    152   |     140     |    2   |    L   |    N   | System date: year (00-99)                              | 33022    |
+|    154   |     142     |    2   |    L   |    N   | System date: month (01-12)                             | 33023    |
+|    156   |     144     |    2   |    L   |    N   | System date: day of month                              | 33024    |
+|    158   |     146     |    2   |    L   |    N   | System time: hour                                      | 33025    |
+|    160   |     148     |    2   |    L   |    N   | System time: minute                                    | 33026    |
+|    162   |     150     |    2   |    L   |    N   | System time: second                                    | 33027    |
+|    164   |     152     |    2   |    L   |    N   | Meter grid voltage (0.1V)                              | 33128    |
+|    166   |     154     |    2   |    L   |    N   | Meter grid current (0.1A)                              | 33129    |
+|    168   |     156     |    4   |    L   |    Y   | Meter power to grid (+ve is export, -ve is import)     | 33130-31 |
+|    172   |     160     |    2   |    L   |    N   | Energy storage mode ?                                  | 33132    |
+|    174   |     162     |    2   |    L   |    N   | Battery voltage (0.1V)                                 | 33133    |
+|    176   |     164     |    2   |    L   |    N   | Battery current (0.1A)                                 | 33134    |
+|    178   |     166     |    2   |    L   |    N   | Battery current direction (0 = Charge, 1 = Discharge)  | 33135    |
+|    180   |     168     |    2   |    L   |    N   | Bypass AC voltage (0.1V)                               | 33137    |
+|    182   |     170     |    2   |    L   |    N   | Bypass AC current (0.1A)                               | 33138    |
+|    184   |     172     |    2   |    L   |    N   | BMS battery state of charge (%)                        | 33139    |
+|    186   |     174     |    2   |    L   |    N   | BMS battery state of health (%)                        | 33140    |
+|    188   |     176     |    2   |    L   |    N   | BMS battery voltage (0.01V)                            | 33141    |
+|    190   |     178     |    2   |    L   |    N   | BMS battery current (0.01A)                            | 33142    |
+|    192   |     180     |    2   |    L   |    N   | BMS charge current limit (0.1A)                        | 33143    |
+|    194   |     182     |    2   |    L   |    N   | BMS discharge current limit (0.1A)                     | 33144    |
+|    196   |     184     |    2   |    L   |    N   | BMS battery failure information 1                      | 33145    |
+|    198   |     186     |    2   |    L   |    N   | BMS battery failure information 2                      | 33146    |
+|    200   |     188     |    2   |    L   |    N   | House load power (W)                                   | 33147    |
+|    202   |     190     |    2   |    L   |    N   | Bypass load power (W)                                  | 33148    |
+|    204   |     192     |    4   |    L   |    N   | Total energy to battery (kWh)                          | 33161-62 |
+|    208   |     196     |    2   |    L   |    N   | Energy to battery today (0.1kWh)                       | 33163    |
+|    210   |     198     |    2   |    L   |    N   | Energy to battery yesterday (0.1kWh)                   | 33164    |
+|    212   |     200     |    4   |    L   |    N   | Total energy from battery (kWh)                        | 33165-66 |
+|    216   |     204     |    2   |    L   |    N   | Energy from battery today (0.1kWh)                     | 33167    |
+|    218   |     206     |    2   |    L   |    N   | Energy from battery yesterday (0.1kWh)                 | 33168    |
+|    220   |     208     |    4   |    L   |    N   | Total energy imported from grid (kWh)                  | 33169-70 |
+|    224   |     212     |    2   |    L   |    N   | Energy from grid today (0.1kWh)                        | 33171    |
+|    226   |     214     |    4   |    L   |    N   | Total energy exported to grid (kWh)                    | 33173-74 |
+|    230   |     218     |    2   |    L   |    N   | Energy to grid today (0.1kWh)                          | 33175    |
+|    232   |     220     |    4   |    L   |    N   | Total house energy consumed (kWh)                      | 33177-78 |
+|    236   |     224     |    2   |    L   |    N   | House energy consumed today (0.1kWh)                   | 33179    |
+|    238   |     226     |    2   |    L   |    N   | House energy consumed yesterday (0.1kWh)               | 33180    |
+|    240   |     228     |    4   |    L   |    ?   | Unknown - constant value                               |     -    |
+|    244   |     232     |    2   |    L   |    ?   | Unknown - constant value                               |     -    |
+|    246   |     234     |    2   |    L   |    ?   | Unknown - always 1                                     |     -    |
+|    248   |     236     |    4   |    L   |    ?   | Unknown - always zero                                  |     -    |
+|    252   |     240     |    4   |    L   |    ?   | Unknown - always zero                                  |     -    |
+|    256   |     244     |    4   |    L   |    ?   | Unknown - always 1                                     |     -    |
+|    260   |     248     |    1   |    -   |    -   | Checksum                                               |     -    |
+|    261   |     249     |    1   |    -   |    -   | 0x15 - End of transmission                             |     -    |
+|    262   |      -      |    1   |    -   |    -   | 0x5A - End of record                                   |     -    |
+|    263   |      -      |    1   |    -   |    -   | 0xA5 - End of record                                   |     -    |
+
+### 130 byte Cloud record
+
+This record is also recorded by `solis-capture`. It contains more details of the grid supply. Unlike the 250 byte record
+much of the data is in big-endian format.
+
+At present no use is made of this information.
+
+
+The following table describes most of the data in each record:
+
+|   File   | Transmitted |        |        |        |                                                        |          |
+| Position |   Position  | Length | Endian | Signed | Description                                            |  Modbus  |
+|:--------:|:-----------:|:------:|:------:|:------:|:------------------------------------------------------:|:--------:|
+|      0   |      -      |    1   |    -   |    -   | 0xA5 - Start of record                                 |    -     |
+|      1   |      -      |    1   |    -   |    -   | 0x5A - Start of record                                 |    -     |
+|      2   |      -      |    2   |    L   |    N   | 130 - Length of transmitted record                     |    -     |
+|      4   |      -      |    8   |    L   |    N   | UTC time record was captured (seconds since 1 Jan 1970 |    -     |
+|     12   |       0     !    1   |    -   |    -   | 0xA5 - Start of transmission                           |    -     |
+|     13   |       1     |    2   |    L   |    N   | 117 - Record type                                      |    -     |
+|     15   |       3     |    2   |    ?   |    ?   | Flags ?                                                |    -     |
+|     17   |       5     |    1   |    -   |    N   | Transmission counter ?                                 |    -     |
+|     18   |       6     |    1   |    -   |    N   | Acknowledgement counter ?                              |    -     |
+|     19   |       7     |    4   |    L   |    N   | Logger serial number                                   |    -     |
+|     23   |      11     |    3   |    ?   |    ?   | Flags ?                                                |    -     |
+|     26   |      14     |    4   |    L   |    N   | Inverter uptime (seconds)                              |    -     |
+|     30   |      18     |    4   |    L   |    N   | Logger uptime (seconds)                                |    -     |
+|     34   |      22     |    4   |    L   |    N   | Inverter reset time (seconds since 1 Jan 1970)         |    -     |
+|     38   |      26     |    2   |    L   |    ?   | Timezone ?                                             |    -     |
+|     40   |      28     |    4   |    L   |    N   | Message counter ?                                      |    -     |
+|     44   |      32     |   20   |    -   |    -   | Logger serial number (ASCII coded)                     |    -     |
+|     64   |      52     |    2   |    B   |    ?   | Constant                                               | 33250 ?  |
+|     66   |      54     |    2   |    B   |    N   | Meter Voltage A (0.1V)                                 | 33251    |
+|     68   |      56     |    2   |    B   |    N   | Meter Current A (0.01A)                                | 33252    |
+|     70   |      58     |    2   |    B   |    N   | Meter Voltage B (0.1V)                                 | 33253    |
+|     72   |      60     |    2   |    B   |    N   | Meter Current B (0.01A)                                | 33254    |
+|     74   |      62     |    2   |    B   |    N   | Meter Voltage C (0.1V)                                 | 33255    |
+|     76   |      64     |    2   |    B   |    N   | Meter Current C (0.01A)                                | 33256    |
+|     78   |      66     |    4   |    B   |    Y   | Meter Active Power A (W)                               | 33257-58 |
+|     82   |      70     |    4   |    B   |    Y   | Meter Active Power B (W)                               | 33259-60 |
+|     86   |      74     |    4   |    B   |    Y   | Meter Active Power c (W)                               | 33261-62 |
+|     90   |      78     |    4   |    B   |    Y   | Meter Total Active Power (W)                           | 33263-64 |
+|     94   |      82     |    4   |    B   |    Y   | Meter Reactive Power A (VA)                            | 33265-66 |
+|     98   |      86     |    4   |    B   |    Y   | Meter Reactive Power B (VA)                            | 33267-68 |
+|    102   |      90     |    4   |    B   |    Y   | Meter Reactive Power C (VA)                            | 33269-70 |
+|    106   |      94     |    4   |    B   |    Y   | Meter Total Reactive Power (VA)                        | 33271-72 |
+|    110   |      98     |    4   |    B   |    Y   | Meter Apparent Power A (VA)                            | 33273-74 |
+|    114   |     102     |    4   |    B   |    Y   | Meter Apparent Power B (VA)                            | 33275-76 |
+|    118   |     106     |    4   |    B   |    Y   | Meter Apparent Power C (VA)                            | 33277-78 |
+|    122   |     110     |    4   |    B   |    Y   | Meter Total Apparent Power (VA)                        | 33279-80 |
+|    126   |     114     |    2   |    B   |    Y   | Power Factor (%)                                       | 33281    |
+|    128   |     116     |    2   |    B   |    N   | Freq (0.01 Hz)                                         | 33282    |
+|    130   |     118     |    4   |    B   |    N   | Active Imported (10W)                                  | 33283-84 |
+|    132   |     122     |    4   |    B   |    N   | Active Exported (10W)                                  | 33285-86 |
+|    136   |     126     |    2   |    B   |    N   | Unknown - Always zero                                  |     -    |
+|    138   |     128     |    1   |    -   |    -   | Checksum                                               |     -    |
+|    139   |     129     |    1   |    -   |    -   | 0x15 - End of transmission                             |     -    |
+|    140   |      -      |    1   |    -   |    -   | 0x5A - End of record                                   |     -    |
+|    141   |      -      |    1   |    -   |    -   | 0xA5 - End of record                                   |     -    |
+
+### TODO
+
+There are still a number of other records to attempt to decode:
+
+* 14 bytes - One every minute
+* 28 bytes - A few close together once per day ?
+* 41 bytes - A few close together once per day ?
+* 97 bytes - A few close together once per day ?
+
+It may be necessary to capture the responses from the cloud server (which `solis-capture` currently does not do)
+in order to make sense of these records.
