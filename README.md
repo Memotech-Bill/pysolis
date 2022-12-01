@@ -373,7 +373,7 @@ https://community.home-assistant.io/t/getting-data-from-solis-inverter/302189/30
 The following table describes most of the data in each record:
 
 | File Pos |   Net Posn  | Length | Endian | Signed | Description                                            |  Modbus  |
-|:--------:|:-----------:|:------:|:------:|:------:|:------------------------------------------------------:|:--------:|
+|:--------:|:-----------:|:------:|:------:|:------:|--------------------------------------------------------|:--------:|
 |      0   |      -      |    1   |    -   |    -   | 0xA5 - Start of record                                 |    -     |
 |      1   |      -      |    1   |    -   |    -   | 0x5A - Start of record                                 |    -     |
 |      2   |      -      |    2   |    L   |    N   | 250 - Length of transmitted record                     |    -     |
@@ -481,7 +481,7 @@ At present no use is made of this information.
 The following table describes most of the data in each record:
 
 | File Pos |   Net Posn  | Length | Endian | Signed | Description                                            |  Modbus  |
-|:--------:|:-----------:|:------:|:------:|:------:|:------------------------------------------------------:|:--------:|
+|:--------:|:-----------:|:------:|:------:|:------:|--------------------------------------------------------|:--------:|
 |      0   |      -      |    1   |    -   |    -   | 0xA5 - Start of record                                 |    -     |
 |      1   |      -      |    1   |    -   |    -   | 0x5A - Start of record                                 |    -     |
 |      2   |      -      |    2   |    L   |    N   | 130 - Length of transmitted record                     |    -     |
