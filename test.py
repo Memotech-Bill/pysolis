@@ -218,6 +218,8 @@ class Daily:
         f.close ()
 
     def StatusPlt (self, sDir, tm):
+        print (self.status1)
+        print (self.status2)
         fig = plt.figure (figsize=(10.0, 1.0), dpi = 100, facecolor='w')
         ax = fig.add_axes ([0.1, 0.25, 0.85, 0.5])
         tmin = self.status1[0][0];
@@ -313,12 +315,12 @@ class Daily:
 
     def Process (self, sDDir, sLDir, tm):
         self.Load (sDDir, tm)
-        self.Log (sLDir, tm)
+        # self.Log (sLDir, tm)
         self.StatusPlt (sLDir, tm)
-        self.ConsumePie (sLDir, tm)
-        self.ProducePie (sLDir, tm)
-        self.PowerPlt (sLDir, tm)
-        self.BatteryPlt (sLDir, tm)
+        # self.ConsumePie (sLDir, tm)
+        # self.ProducePie (sLDir, tm)
+        # self.PowerPlt (sLDir, tm)
+        # self.BatteryPlt (sLDir, tm)
 
 class Monthly:
     def Load (self, sDir, tm):
@@ -465,6 +467,6 @@ def Main ():
         sDDir = sys.argv[2]
         sLDir = sys.argv[3]
     Daily ().Process (sDDir, sLDir, tm)
-    Monthly ().Process (sLDir, tm)
+    # Monthly ().Process (sLDir, tm)
 
 Main ()

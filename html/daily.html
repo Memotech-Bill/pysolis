@@ -6,23 +6,25 @@
       var g_chart_c = { ncol: 1, map: consume, cid: "consume", vert: 1, horz: 24 };
       var g_chart_s = { ncol: 1, map: supply, cid: "supply", vert: 1, horz: 24 };
       var g_chart_p = { ncol: 2, map: produce, cid: "produce", vert: 1, horz: 24 };
-      var g_chart_b = { ncol: 5, map: battery, cid: "battery", vert: 1, horz: 24 };
       var g_data;
       function parse (xhttp) {
           let i, j;
           let data = xhttp.responseText.split ("\n");
           if ( ! Array.isArray (data) ) return null;
           let nrow = data.length;
-          for ( i = 0; i < nrow; ++i ) {
+          i = 0;
+          while ( i < nrow ) {
               data[i] = data[i].split (",");
               let ncol = data[i].length;
               if ( ncol == 6 ) {
                   for ( j = 0; j < ncol; ++j ) {
-                      data[i][j] = Number.parseInt (data[i][j])
+                      data[i][j] = Number.parseInt (data[i][j]);
                   }
+                  ++i;
               }
               else {
                   data.splice (i, 1);
+                  --nrow;
               }
           }
           return data;
@@ -69,9 +71,6 @@
           let pBatt = 0
           if ( data[3] > 0 ) pBatt = data[3];
           return [pGrid, pBatt + pGrid, pBatt + pGrid + pInv, pTot];
-      }
-      function battery (data) {
-          return [0, data[5], data[5], data[5]];
       }
       function fmtTime (tLab) {
           return Math.trunc (( tLab % 86400 ) / 3600).toString () + ":" +
@@ -203,7 +202,6 @@
           plot (g_chart_c, g_data);
           plot (g_chart_s, g_data);
           plot (g_chart_p, g_data);
-          plot (g_chart_b, g_data);
       }
       function receive (xhttp) {
           g_data = parse (xhttp);
@@ -257,6 +255,7 @@
           document.getElementById ("year").value = yr;
           let dir = dirstr (yr, mo);
           let when = datestr (yr, mo, dy);
+          document.getElementById ("status").src = dir + "Status_" + when + ".png";
           document.getElementById ("prod_pie").src = dir + "Produce_" + when + ".png";
           document.getElementById ("cons_pie").src = dir + "Consume_" + when + ".png";
           document.getElementById ("power").src = dir + "Power_" + when + ".png";
@@ -318,15 +317,15 @@
     <h1>Daily Solar PV Statistics</h1>
     <form>
       <select id="day" onchange="update ();">
-        <option value="01">1</option>
-        <option value="02">2</option>
-        <option value="03">3</option>
-        <option value="04">4</option>
-        <option value="05">5</option>
-        <option value="06">6</option>
-        <option value="07">7</option>
-        <option value="08">8</option>
-        <option value="09">9</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
         <option value="10">10</option>
         <option value="11">11</option>
         <option value="12">12</option>
@@ -351,15 +350,15 @@
         <option value="31">31</option>
       </select>
       <select id="mon" onchange="update ();">
-        <option value="01">January</option>
-        <option value="02">Febuary</option>
-        <option value="03">March</option>
-        <option value="04">April</option>
-        <option value="05">May</option>
-        <option value="06">June</option>
-        <option value="07">July</option>
-        <option value="08">August</option>
-        <option value="09">September</option>
+        <option value="1">January</option>
+        <option value="2">Febuary</option>
+        <option value="3">March</option>
+        <option value="4">April</option>
+        <option value="5">May</option>
+        <option value="6">June</option>
+        <option value="7">July</option>
+        <option value="8">August</option>
+        <option value="9">September</option>
         <option value="10">October</option>
         <option value="11">November</option>
         <option value="12">December</option>
@@ -377,6 +376,8 @@
         <option value="2031">2031</option>
       </select>
     </form>
+    <h2>Status</h2>
+    <img id="status">
     <h2>Statistics</h2>
     <img id="cons_pie">
     <img id="prod_pie">

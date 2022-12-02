@@ -76,8 +76,8 @@ class Source1 (Source):
         if ( len (sys.argv) > 2 ):
             self.sPath = sys.argv[2]
         else:
-            self.sPath = '{:s}/{:4d}/{:2d}/Solis_{:4d}{:2d}{:2d}.dat'.format (sLog, tm.tm_year, tm.tm_mon, tm.tm_year,
-                                                                              tm.tm_mon, tm.tm_mday)
+            self.sPath = '{:s}/{:04d}/{:02d}/Solis_{:04d}{:02d}{:02d}.dat'.format (sLog, tm.tm_year, tm.tm_mon, tm.tm_year,
+                                                                                   tm.tm_mon, tm.tm_mday)
      
     def Decode (self, rec):
         if ( len (rec) < self.reclen ):
@@ -107,8 +107,8 @@ class Source2 (Source):
         if ( len (sys.argv) > 3 ):
             self.sPath = sys.argv[3]
         else:
-            self.sPath = '{:s}/{:4d}/{:2d}/Solis_R250_{:4d}{:2d}{:2d}.cap'.format (sLog, tm.tm_year, tm.tm_mon, tm.tm_year,
-                                                                                   tm.tm_mon, tm.tm_mday)
+            self.sPath = '{:s}/{:04d}/{:02d}/Solis_R250_{:04d}{:02d}{:02d}.cap'.format (sLog, tm.tm_year, tm.tm_mon, tm.tm_year,
+                                                                                        tm.tm_mon, tm.tm_mday)
      
     def Decode (self, rec):
         if ( len (rec) < self.reclen ):
@@ -134,7 +134,9 @@ class Source2 (Source):
         return (t, load, solar, batv * bata // 100, grid, bsoc)
 
 def Main ():
-    print ('Context-type: text/csv\n')
+    sys.stdout.write ('Context-type: text/csv\n\n')
+    t1 = 0
+    t2 = 0
     treq = GetParam ()
     tm = time.gmtime (treq)
     s1 = Source1 (tm)
@@ -144,25 +146,25 @@ def Main ():
     while (True):
         r = None
         if ( r1 is None ):
+            if ( r2 is None ):
+                break
             r = r2
+            t2 = r2[0]
             r2 = s2.GetNext ()
-            t = 2
         elif ( r2 is None ):
             r = r1
+            t1 = r1[0]
             r1 = s1.GetNext ()
-            t = 1
         elif ( r1[0] < r2[0] ):
             r = r1
+            t1 = r1[0]
             r1 = s1.GetNext ()
-            t = 1
         else:
             r = r2
+            t2 = r2[0]
             r2 = s2.GetNext ()
-            t = 2
-        if ( r is None ):
-            break
-        # print ('{:d},{:d},{:d},{:d},{:d},{:d},{:d}'.format (r[0], r[1], r[2], r[3], r[4], r[5], t))
-        print ('{:d},{:d},{:d},{:d},{:d},{:d}'.format (r[0], r[1], r[2], r[3], r[4], r[5]))
+        sys.stdout.write ('{:d},{:d},{:d},{:d},{:d},{:d}\n'.format (r[0], r[1], r[2], r[3], r[4], r[5]))
+    sys.stdout.write ('{:d},{:d}\n'.format (t1, t2))
 
 Main ()
 

@@ -115,7 +115,7 @@ FILE *save_rec (FILE *f, const MSG *msg)
         mkdir (sFile, 0750);
         sprintf (sFile, "%s/%04d/%02d", psDir, now->tm_year + 1900, now->tm_mon + 1);
         mkdir (sFile, 0750);
-        sprintf (sFile, "%s/%04d/%02d/Solis_R%d_%4d%2d%2d.cap", psDir, now->tm_year + 1900, now->tm_mon + 1,
+        sprintf (sFile, "%s/%04d/%02d/Solis_R%d_%04d%02d%02d.cap", psDir, now->tm_year + 1900, now->tm_mon + 1,
             msg->nlen, now->tm_year + 1900, now->tm_mon + 1, now->tm_mday);
         // printf ("Open file: %s\n", sFile);
         f = fopen (sFile, "ab");

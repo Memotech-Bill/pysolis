@@ -3,6 +3,8 @@
   <head>
     <title>Solar PV Status</title>
     <script>
+      var t_modbus = 0;
+      var t_cloud = 0;
       var g_chart_c = { ncol: 1, map: consume, cid: "consume", vert: 1, horz: 24 };
       var g_chart_s = { ncol: 1, map: supply, cid: "supply", vert: 1, horz: 24 };
       var g_chart_p = { ncol: 2, map: produce, cid: "produce", vert: 1, horz: 24 };
@@ -13,16 +15,23 @@
           let data = xhttp.responseText.split ("\n");
           if ( ! Array.isArray (data) ) return null;
           let nrow = data.length;
-          for ( i = 0; i < nrow; ++i ) {
+          i = 0;
+          while ( i < nrow ) {
               data[i] = data[i].split (",");
               let ncol = data[i].length;
               if ( ncol == 6 ) {
                   for ( j = 0; j < ncol; ++j ) {
-                      data[i][j] = Number.parseInt (data[i][j])
+                      data[i][j] = Number.parseInt (data[i][j]);
                   }
+                  ++i;
               }
               else {
+                  if ( ncol == 2 ) {
+                      t_modbus = Number.parseInt (data[i][0]);
+                      t_cloud = Number.parseInt (data[i][1]);
+                  }
                   data.splice (i, 1);
+                  --nrow;
               }
           }
           return data;
@@ -201,10 +210,20 @@
           if ( p > 0 ) return "+" + p.toString () + " W";
           else return p.toString () + " W";
       }
+      function fmtStatus (t1, t2) {
+          let status = ""
+          if ( t2 < t1 - 600 ) {
+              status += '<span style="color: #FF0000;">' + fmtTime (t2) + '</span>';
+          } else {
+              status += fmtTime (t2);
+          }
+          return status;
+      }
       function draw () {
+          let t = Math.trunc (Date.now () / 1000);
           lrow = g_data.length - 1;
           let pinv = g_data[lrow][2] - g_data[lrow][1] - g_data[lrow][3] - g_data[lrow][4];
-          document.getElementById("p_update").innerHTML = fmtTime (g_data[lrow][0]);
+          document.getElementById("p_update").innerHTML = fmtStatus (t, t_modbus) + "<br/>" + fmtStatus (t, t_cloud);
           document.getElementById("p_load").innerHTML = kwString (g_data[lrow][1]);
           document.getElementById("p_inverter").innerHTML = kwString (pinv);
           document.getElementById("p_solar").innerHTML = kwString (g_data[lrow][2]);
