@@ -56,7 +56,7 @@ is used.
 The software is written for Python 3, and requires the following additional packages:
 
 * matplotlib - Used for generating the statistical plots. Install using APT
-* umodbus - To access the Modbus registers on the inverter. This has to be unstalled in a
+* umodbus - To access the Modbus registers on the inverter. This has to be installed in a
 Python virtual environment using PIP.
 
 The following folder structure is used:
@@ -92,7 +92,7 @@ Each time it is run it reads most of the inverter registers and stores them in a
 Crontab should be configured to run this program every 5 minutes.
 
 All times recorded, and file names are based upon GMT (UTC) so that each day contains 24h, irrespective
-of daylight saving time.
+of daylight saving time. See below for the format of the data file.
 
 ### solis_capture.c
 
@@ -117,7 +117,7 @@ The program takes three command line parameters:
 
 The captured data is recorded as records in files named `yyyy/mm/Solis_Rnnn_yyyymmdd.cap`, where
 nnn is the length of the data packet being sent to the cloud. Only the data in the 250 byte
-records is currently being used.
+records is currently being used. See below for the format of some of these files.
 
 Configuring the program to work without root permissions was based upon:
 https://web.archive.org/web/20160403142820/http://peternixon.net/news/2012/01/28/configure-tcpdump-work-non-root-user-opensuse-using-file-system-capabilities/
@@ -167,7 +167,7 @@ This program takes one query parameter:
 * From= C time (seconds since 1 Jan 1970) from which to supply data. Data is supplied from this time
   until the last record or the end of the day.
 
-The following data is supplied in CSV format:
+The following data is supplied in CSV format, one row per timestep:
 
 * Time of data (C time, seconds)
 * House consumption (W)
@@ -175,6 +175,11 @@ The following data is supplied in CSV format:
 * Battery charge / discharge (W)
 * Grid export / import (W)
 * Battery state of charge (%)
+
+The last row of data contains just two values:
+
+* Timestamp of the last data from the Modbus queries.
+* Timestamp of the last data from the Cloud capture.
 
 Once the page `solis.html` is loaded, it calls this program every 5 minutes (AJAX code) to update the
 displayed statistics.
@@ -355,7 +360,7 @@ The complete contents of a record is described in the following table:
 |    304   |    1   |    -   |    -   |   -      | 0x55 - End of record                                         |
 |    305   |    1   |    -   |    -   |   -      | 0xAA - End of record                                         |
 
-#### 250 byte Cloud record
+### 250 byte Cloud record
 
 The program `solis-capture` makes copies of all the messages sent by the inverter to the Solis Cloud. The inverter
 sends a number different types of message, each of a diffeent length. The proggram saves each message type in a
