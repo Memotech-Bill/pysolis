@@ -250,9 +250,9 @@
               + dy.toString ().padStart (2, "0");
       }
       function load (yr, mo, dy) {
-          document.getElementById ("day").value = dy;
-          document.getElementById ("mon").value = mo;
-          document.getElementById ("year").value = yr;
+          g_data = [];
+          document.getElementById ("dpick").value = yr.toString ().padStart (4, "0") + "-" + mo.toString ().padStart (2, "0")
+              + "-" + dy.toString ().padStart (2, "0");
           let dir = dirstr (yr, mo);
           let when = datestr (yr, mo, dy);
           document.getElementById ("status").src = dir + "Status_" + when + ".png";
@@ -260,22 +260,53 @@
           document.getElementById ("cons_pie").src = dir + "Consume_" + when + ".png";
           document.getElementById ("power").src = dir + "Power_" + when + ".png";
           document.getElementById ("battery").src = dir + "Battery_" + when + ".png";
+          document.getElementById ("molink").search = "m=" + mo.toString () + "&y=" + yr.toString ();
           let dt = new Date(yr, mo - 1, dy)
           let t = Math.trunc (dt.getTime () / 1000);
           request (t, receive);
       }
-      function update () {
-          dy = document.getElementById ("day").value;
-          mo = document.getElementById ("mon").value;
-          yr = document.getElementById ("year").value;
-          load (yr, mo, dy);
-      }
-      function yesterday () {
+      function initial () {
           let yd = new Date (Date.now () - 86400000);
           let dy = yd.getDate ();
           let mo = yd.getMonth () + 1;
           let yr = yd.getFullYear ();
+          let q = document.documentURI.split ("?");
+          if ( q.length > 1 ) {
+              q = q[1].split ("&");
+              for (i = 0; i < q.length; ++i) {
+                  if (q[i].startsWith ("d=")) dy = Number.parseInt (q[i].substr (2));
+                  if (q[i].startsWith ("m=")) mo = Number.parseInt (q[i].substr (2));
+                  if (q[i].startsWith ("y=")) yr = Number.parseInt (q[i].substr (2));
+              }
+          }
           load (yr, mo, dy);
+      }
+      function when () {
+          let v = document.getElementById ("dpick").value;
+          let yr = Number.parseInt (v.substr (0, 4));
+          let mo = Number.parseInt (v.substr (5, 2));
+          let dy = Number.parseInt (v.substr (8, 2));
+          return {yr: yr, mo: mo, dy: dy};
+      }
+      function prev () {
+          let d = when ();
+          let t = new Date (Date.UTC (d.yr, d.mo - 1, d.dy, 12, 0, 0) - 86400000);
+          let yr = t.getUTCFullYear ();
+          mo = t.getUTCMonth () + 1;
+          dy = t.getUTCDate ();
+          load (yr, mo, dy);
+      }
+      function next () {
+          let d = when ();
+          let t = new Date (Date.UTC (d.yr, d.mo - 1, d.dy, 12, 0, 0) + 86400000);
+          let yr = t.getUTCFullYear ();
+          let mo = t.getUTCMonth () + 1;
+          let dy = t.getUTCDate ();
+          load (yr, mo, dy);
+      }
+      function update () {
+          d = when ();
+          load (d.yr, d.mo, d.dy);
       }
     </script>
     <style>
@@ -309,72 +340,16 @@
       }
     </style>
   </head>
-  <body onload="yesterday ();">
+  <body onload="initial ();">
     <table id="menu"><tr>
       <td><a href="/">Live Data</a></td>
-      <td><a href="monthly.html">This Month</a></td>
+      <td><a id="molink" href="monthly.html">This Month</a></td>
     </tr></table>
     <h1>Daily Solar PV Statistics</h1>
     <form>
-      <select id="day" onchange="update ();">
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-        <option value="7">7</option>
-        <option value="8">8</option>
-        <option value="9">9</option>
-        <option value="10">10</option>
-        <option value="11">11</option>
-        <option value="12">12</option>
-        <option value="13">13</option>
-        <option value="14">14</option>
-        <option value="15">15</option>
-        <option value="16">16</option>
-        <option value="17">17</option>
-        <option value="18">18</option>
-        <option value="19">19</option>
-        <option value="20">20</option>
-        <option value="21">21</option>
-        <option value="22">22</option>
-        <option value="23">23</option>
-        <option value="24">24</option>
-        <option value="25">25</option>
-        <option value="26">26</option>
-        <option value="27">27</option>
-        <option value="28">28</option>
-        <option value="29">29</option>
-        <option value="30">30</option>
-        <option value="31">31</option>
-      </select>
-      <select id="mon" onchange="update ();">
-        <option value="1">January</option>
-        <option value="2">Febuary</option>
-        <option value="3">March</option>
-        <option value="4">April</option>
-        <option value="5">May</option>
-        <option value="6">June</option>
-        <option value="7">July</option>
-        <option value="8">August</option>
-        <option value="9">September</option>
-        <option value="10">October</option>
-        <option value="11">November</option>
-        <option value="12">December</option>
-      </select>
-      <select id="year" onchange="update ();">
-        <option value="2022">2022</option>
-        <option value="2023">2023</option>
-        <option value="2024">2024</option>
-        <option value="2025">2025</option>
-        <option value="2026">2026</option>
-        <option value="2027">2027</option>
-        <option value="2028">2028</option>
-        <option value="2029">2029</option>
-        <option value="2030">2030</option>
-        <option value="2031">2031</option>
-      </select>
+      <input type="button" value="<" onclick="prev ();"/>
+      <input id="dpick" type="date" onchange="update ();"/>
+      <input type="button" value=">" onclick="next ();"/>
     </form>
     <h2>Status</h2>
     <img id="status">

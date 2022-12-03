@@ -84,6 +84,7 @@ def TimeFmt (t, pos):
     return '{:d}:{:02d}'.format (h, m)
 
 def Status (t, data):
+    tmax = 600
     status = []
     c1 = ''
     t2 = t
@@ -91,7 +92,7 @@ def Status (t, data):
     for rec in data:
         t1 = t2
         t2 = rec[0]
-        if ( t2 - t1 < 400 ):
+        if ( t2 - t1 < tmax ):
             c2 = '#00FF00'
         else:
             c2 = '#FF0000'
@@ -102,10 +103,15 @@ def Status (t, data):
             c1 = c2
     t1 = t2
     t2 = t + 86400
-    if ( t2 - t1 < 400 ):
+    if ( t2 - t1 < tmax ):
         c2 = '#00FF00'
     else:
         c2 = '#FF0000'
+    if ( c2 != c1 ):
+        if ( c1 != '' ):
+            status.append ((ts, t1 - ts, c1))
+            ts = t1
+        c1 = c2
     status.append ((ts, t2 - ts, c2))
     return status
 

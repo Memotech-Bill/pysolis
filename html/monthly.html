@@ -18,16 +18,45 @@
           document.getElementById ("produce").src = dir + "Monthly_Produce_" + when + ".png";
           document.getElementById ("grid").src = dir + "Monthly_Grid_" + when + ".png";
           document.getElementById ("battery").src = dir + "Monthly_Battery_" + when + ".png";
+          document.getElementById ("daylink").search = "d=1&m=" + mo.toString () + "&y=" + yr.toString ();
       }
       function update () {
-          mo = document.getElementById ("mon").value;
-          yr = document.getElementById ("year").value;
+          let mo = document.getElementById ("mon").value;
+          let yr = document.getElementById ("year").value;
           load (yr, mo);
       }
-      function yesterday () {
+      function initial () {
           let yd = new Date (Date.now () - 86400000);
           let mo = yd.getMonth () + 1;
           let yr = yd.getFullYear ();
+                let q = document.documentURI.split ("?");
+          if ( q.length > 1 ) {
+              q = q[1].split ("&");
+              for (i = 0; i < q.length; ++i) {
+                  if (q[i].startsWith ("m=")) mo = Number.parseInt (q[i].substr (2));
+                  if (q[i].startsWith ("y=")) yr = Number.parseInt (q[i].substr (2));
+              }
+          }
+    load (yr, mo);
+      }
+      function prev () {
+          let mo = document.getElementById ("mon").value;
+          let yr = document.getElementById ("year").value;
+          --mo;
+          if ( mo <= 0 ) {
+              --yr;
+              mo = 12;
+          }
+          load (yr, mo);
+      }
+      function next () {
+          let mo = document.getElementById ("mon").value;
+          let yr = document.getElementById ("year").value;
+          ++mo;
+          if ( mo > 12 ) {
+              ++yr;
+              mo = 1;
+          }
           load (yr, mo);
       }
     </script>
@@ -49,13 +78,14 @@
       }
     </style>
   </head>
-  <body onload="yesterday ();">
+  <body onload="initial ();">
     <table id="menu"><tr>
       <td><a href="/">Live Data</a></td>
-      <td><a href="daily.html">Daily Statistics</a></td>
+      <td><a id="daylink" href="daily.html">Daily Statistics</a></td>
     </tr></table>
     <h1>Monthly Solar PV Statistics</h1>
     <form>
+      <input type="button" value="<" onclick="prev ();"/>
       <select id="mon" onchange="update ();">
         <option value="01">January</option>
         <option value="02">Febuary</option>
@@ -82,6 +112,7 @@
         <option value="2030">2030</option>
         <option value="2031">2031</option>
       </select>
+      <input type="button" value=">" onclick="next ();"/>
     </form>
     <h2>Consumed Energy (By: <span style="color: #00FF00;">House</span>,
       <span style="color: #FFFF00;">Inverter</span>)</h2>
