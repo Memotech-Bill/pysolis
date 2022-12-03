@@ -9,11 +9,11 @@
       var g_chart_s = { ncol: 1, map: supply, cid: "supply", vert: 1, horz: 24 };
       var g_chart_p = { ncol: 2, map: produce, cid: "produce", vert: 1, horz: 24 };
       var g_chart_b = { ncol: 5, map: battery, cid: "battery", vert: 1, horz: 24 };
-      var g_data;
+      var g_data = [];
       function parse (xhttp) {
           let i, j;
           let data = xhttp.responseText.split ("\n");
-          if ( ! Array.isArray (data) ) return null;
+          if ( ! Array.isArray (data) ) return [];
           let nrow = data.length;
           i = 0;
           while ( i < nrow ) {
@@ -98,38 +98,47 @@
           let c = document.getElementById(chart.cid);
           let ctx = c.getContext("2d");
           let imgData = ctx.createImageData(wth, hgt);
-          let tDay = data[0][0] - data[0][0] % 86400;
-          let tEnd = data[data.length - 1][0];
+          let nrow = data.length;
+          let tDay = 0;
+          let tEnd = 0;
+          if ( nrow > 0 ) {
+              tDay = data[0][0] - data[0][0] % 86400;
+              tEnd = data[data.length - 1][0];
+          }
           let tSta = tEnd - 3600 * chart.horz;
           if ( tSta < tDay ) {
               tSta = tDay;
               tEnd = tSta + 3600 * tSta;
           }
-          let nrow = data.length;
           let irow = 0;
-          while ( tSta > data[irow][0] ) {
-              ++irow;
-              if ( irow >= nrow ) break;
-          }
+          while (( irow < nrow - 1 ) && ( tSta > data[irow][0] )) ++irow;
           let vmk = scale (data, irow, chart.ncol, 5, chart.vert);
           let scl = hgt / (vmk.ntick * vmk.tick);
           let xsc = 3600 * chart.horz / wth;
-          row2 = chart.map (data[irow]);
+          if ( irow < nrow ) row2 = chart.map (data[irow]);
           if ( irow > 0 ) row1 = chart.map (data[irow-1]);
           else row1 = row2;
           for (i = 0; i < wth; ++i) {
               let t = xsc * i + tSta;
-              while ( t > data[irow][0] ) {
+              while (( irow < nrow - 1 ) && ( t > data[irow][0] )) {
                   row1 = row2;
                   ++irow;
-                  if ( irow >= nrow ) break;
                   row2 = chart.map (data[irow]);
               }
               if ( irow >= nrow ) break;
-              if ( irow == 0 ) {
-                  iRed = Math.trunc (scl * row2[0]);
-                  iBlue = Math.trunc (scl * row2[1]);
-                  iGreen = Math.trunc (scl * row2[2]);
+              if (( irow == 0 ) || ( irow == nrow - 1 )) {
+                  if ( t > data[irow][0] + 300 ) break;
+                  if ( t < data[irow][0] - 300 ) {
+                      iRed = 0;
+                      iBlue = 0;
+                      iYellow = 0;
+                      iGreen = 0;
+                  } else {
+                      iRed = Math.trunc (scl * row2[0]);
+                      iBlue = Math.trunc (scl * row2[1]);
+                      iYellow = Math.trunc (scl * row2[2]);
+                      iGreen = Math.trunc (scl * row2[3]);
+                  }
               } else {
                   let w2 = ( t - data[irow-1][0] ) / ( data[irow][0] - data[irow-1][0] );
                   let w1 = 1 - w2;
@@ -295,6 +304,10 @@
       }
     </script>
     <style>
+      body {
+          width: 1050px;
+          margin: auto;
+      }
       h1 {
           text-align: center;
       }
@@ -337,8 +350,8 @@
   </head>
   <body onload="initialise ();">
     <table id="menu"><tr>
-      <td><a href="daily.html">Yesterday</a></td>
-      <td><a href="monthly.html">This Month</a></td>
+        <td><a href="daily.html">Yesterday</a></td>
+        <td><a href="monthly.html">This Month</a></td>
     </tr></table>
     <h1>Solar PhotoVoltaic Monitor</h1>
     <h2>Current Status</h2>
@@ -351,39 +364,39 @@
     </table>
     <h2>Consumption (<span style="color: #00FF00;">House</span>,
       <span style="color: #FFFF00;">Inverter</span>)</h2>
-      <canvas id="consume" width="950" height="240" style="float:left;"></canvas>
-      <span class="buttons">
-        <img src="Zoom_Up.png" onClick="zoom (g_chart_c, 'U');">
-        <img src="Zoom_Down.png" onClick="zoom (g_chart_c, 'D');">
-        <img src="Zoom_Left.png" onClick="zoom (g_chart_c, 'L');">
-        <img src="Zoom_Right.png" onClick="zoom (g_chart_c, 'R');">
-      </div>
+    <canvas id="consume" width="950" height="240" style="float:left;"></canvas>
+    <span class="buttons">
+      <img src="Zoom_Up.png" onClick="zoom (g_chart_c, 'U');">
+      <img src="Zoom_Down.png" onClick="zoom (g_chart_c, 'D');">
+      <img src="Zoom_Left.png" onClick="zoom (g_chart_c, 'L');">
+      <img src="Zoom_Right.png" onClick="zoom (g_chart_c, 'R');">
+    </span>
     <h2>Supply (Source: <span style="color: #00FF00;">Solar</span>,
       <span style="color: #0000FF;">Battery</span>,
       <span style="color: #FF0000;">Grid</span>)</h2>
-      <canvas id="supply" width="950" height="240" style="float:left;"></canvas>
-      <span class="buttons">
-        <img src="Zoom_Up.png" onClick="zoom (g_chart_s, 'U');">
-        <img src="Zoom_Down.png" onClick="zoom (g_chart_s, 'D');">
-        <img src="Zoom_Left.png" onClick="zoom (g_chart_s, 'L');">
-        <img src="Zoom_Right.png" onClick="zoom (g_chart_s, 'R');">
-      </div>
-      <h2>Production (Used by: <span style="color: #00FF00;">House</span>,
-        <span style="color: #FFFF00;">Inverter</span>,
-        <span style="color: #0000FF;">Battery</span>,
-        <span style="color: #FF0000;">Grid</span>)</h2>
-      <canvas id="produce" width="950" height="240" style="float:left;"></canvas>
-      <span class="buttons">
-        <img src="Zoom_Up.png" onClick="zoom (g_chart_p, 'U');">
-        <img src="Zoom_Down.png" onClick="zoom (g_chart_p, 'D');">
-        <img src="Zoom_Left.png" onClick="zoom (g_chart_p, 'L');">
-        <img src="Zoom_Right.png" onClick="zoom (g_chart_p, 'R');">
-    </div>
+    <canvas id="supply" width="950" height="240" style="float:left;"></canvas>
+    <span class="buttons">
+      <img src="Zoom_Up.png" onClick="zoom (g_chart_s, 'U');">
+      <img src="Zoom_Down.png" onClick="zoom (g_chart_s, 'D');">
+      <img src="Zoom_Left.png" onClick="zoom (g_chart_s, 'L');">
+      <img src="Zoom_Right.png" onClick="zoom (g_chart_s, 'R');">
+    </span>
+    <h2>Production (Used by: <span style="color: #00FF00;">House</span>,
+      <span style="color: #FFFF00;">Inverter</span>,
+      <span style="color: #0000FF;">Battery</span>,
+      <span style="color: #FF0000;">Grid</span>)</h2>
+    <canvas id="produce" width="950" height="240" style="float:left;"></canvas>
+    <span class="buttons">
+      <img src="Zoom_Up.png" onClick="zoom (g_chart_p, 'U');">
+      <img src="Zoom_Down.png" onClick="zoom (g_chart_p, 'D');">
+      <img src="Zoom_Left.png" onClick="zoom (g_chart_p, 'L');">
+      <img src="Zoom_Right.png" onClick="zoom (g_chart_p, 'R');">
+    </span>
     <h2>Battery Charge</h2>
-      <canvas id="battery" width="950" height="240" style="float:left;"></canvas>
-      <span class="buttons">
-        <img src="Zoom_Left.png" onClick="zoom (g_chart_b, 'L');">
-        <img src="Zoom_Right.png" onClick="zoom (g_chart_b, 'R');">
-    </div>
+    <canvas id="battery" width="950" height="240" style="float:left;"></canvas>
+    <span class="buttons">
+      <img src="Zoom_Left.png" onClick="zoom (g_chart_b, 'L');">
+      <img src="Zoom_Right.png" onClick="zoom (g_chart_b, 'R');">
+    </span>
   </body>
 </html>

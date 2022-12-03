@@ -36,7 +36,7 @@ skGrid = 3
 
 def Decode1 (rec):
     if ((rec[0] != 0xAA) or (rec[1] != 0x55) or (rec[-2] != 0x55) or (rec[-1] != 0xAA)):
-        sys.stderr.write ('Invalid Modbus record: 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X}'
+        sys.stderr.write ('Invalid Modbus record: 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X}\n'
                           .format (rec[0], rec[1], rec[-2], rec[-1]))
         sys.exit (1)
     t = struct.unpack ('<Q', rec[2:10])[0]
@@ -57,7 +57,7 @@ def Decode1 (rec):
 
 def Decode2 (rec):
     if ((rec[0] != 0xA5) or (rec[1] != 0x5A) or (rec[-2] != 0x5A) or (rec[-1] != 0xA5)):
-        sys.stderr.write ('Invalid Cloud Capture record: 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X}'
+        sys.stderr.write ('Invalid Cloud Capture record: 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X}\n'
                           .format (rec[0], rec[1], rec[-2], rec[-1]))
         sys.exit (1)
     t = struct.unpack ('<Q', rec[4:12])[0]

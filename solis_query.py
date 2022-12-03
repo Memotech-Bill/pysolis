@@ -47,15 +47,18 @@ def query (addr, logdir):
             else:
                 sys.stderr.write ('{:s} Try {:d} - Connection reset reading registers ({:d{, {:d})\n'
                                   .format (time.strftime ('%Y-%m-%d %H:%M:%S'), nTry, fst, lst))
-            time.sleep (120)
+            if ( nTry == 2 ):
+                sys.exit (1)
+            time.sleep (105)
     rec += struct.pack ('<Q', int (time.time ()))
     rec += b'\x55\xAA'
-    tm = time.gmtime (time.time ())
-    dir = '{:s}/{:04d}/{:02d}'.format (logdir, tm.tm_year, tm.tm_mon)
-    os.makedirs (dir, exist_ok=True)
-    fname = 'Solis_{:04d}{:02d}{:02d}.dat'.format (tm.tm_year, tm.tm_mon, tm.tm_mday)
-    with open (os.path.join (dir, fname), 'ab') as f:
-        f.write (rec)
+    if ( len (rec) == 306 ):
+        tm = time.gmtime (time.time ())
+        dir = '{:s}/{:04d}/{:02d}'.format (logdir, tm.tm_year, tm.tm_mon)
+        os.makedirs (dir, exist_ok=True)
+        fname = 'Solis_{:04d}{:02d}{:02d}.dat'.format (tm.tm_year, tm.tm_mon, tm.tm_mday)
+        with open (os.path.join (dir, fname), 'ab') as f:
+            f.write (rec)
         
 if __name__ == "__main__":
     query (sys.argv[1], sys.argv[2])
