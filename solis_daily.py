@@ -449,6 +449,27 @@ class Monthly:
                                    .format (tm.tm_year, tm.tm_mon)),
                      format = 'png')
 
+    def SavePlt (self, sDir, tm):
+        save = self.data[:, skHouse, :].sum (0) - self.data[scGrid, :, :].sum (0);
+        clr = []
+        for s in save:
+            if ( s < 0 ):
+                clr.append ('#FF0000')
+            else:
+                clr.append ('#00FF00')
+        fig = plt.figure (figsize=(10.0, 4.5), dpi = 100, facecolor='w')
+        ax = fig.add_axes ([0.1, 0.1, 0.85, 0.85])
+        ax.set_xlim (0.5, self.ndays + 0.5)
+        ax.xaxis.set_major_locator (ticker.MaxNLocator (steps=[1, 2, 5, 10]))
+        ax.yaxis.grid (which='major')
+        ax.set_xlabel ('Day of the Month')
+        ax.set_ylabel ('Power Saving (kWh)')
+        ax.set_title ('Power Saving ' + time.strftime ('%B %Y', tm))
+        ax.bar (self.days, save, color = clr)
+        fig.savefig (os.path.join (sDir, 'Monthly_Saving_{:04d}{:02d}.png'
+                                   .format (tm.tm_year, tm.tm_mon)),
+                     format = 'png')
+
     def Process (self, sDir, tm):
         self.Load (sDir, tm)
         self.ConsumePlt (sDir, tm)
@@ -456,6 +477,7 @@ class Monthly:
         self.ProducePlt (sDir, tm)
         self.GridPlt (sDir, tm)
         self.BatteryPlt (sDir, tm)
+        self.SavePlt (sDir, tm)
 
 def Main ():
     if ( len (sys.argv) > 1 ):

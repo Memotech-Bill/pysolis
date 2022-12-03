@@ -13,6 +13,7 @@
           document.getElementById ("year").value = yr;
           let dir = dirstr (yr, mo);
           let when = datestr (yr, mo);
+          document.getElementById ("saving").src = dir + "Monthly_Saving_" + when + ".png";
           document.getElementById ("consume").src = dir + "Monthly_Consume_" + when + ".png";
           document.getElementById ("supply").src = dir + "Monthly_Supply_" + when + ".png";
           document.getElementById ("produce").src = dir + "Monthly_Produce_" + when + ".png";
@@ -119,6 +120,8 @@
       </select>
       <input type="button" value=">" onclick="next ();"/>
     </form>
+    <h2>Energy Saving</h2>
+    <img id="saving">
     <h2>Consumed Energy (By: <span style="color: #00FF00;">House</span>,
       <span style="color: #FFFF00;">Inverter</span>)</h2>
     <img id="consume">
