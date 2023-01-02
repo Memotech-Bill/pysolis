@@ -259,7 +259,7 @@ class Daily:
         ax.set_ylabel ('Power (W)')
         ax.yaxis.grid (which='major')
         ax.set_title (time.strftime ('%d %B %Y', tm))
-        ax.legend (loc='upper center', ncol=4)
+        ax.legend (loc='upper center', ncol=5)
         ax.xaxis.set_major_formatter (ticker.FuncFormatter(TimeFmt))
         ax.xaxis.set_major_locator (ticker.LinearLocator (numticks = 13))
         fig.savefig (os.path.join (sDir, 'Power_{:04d}{:02d}{:02d}.png'
@@ -297,7 +297,8 @@ class Daily:
                 colors = ['#00FF00', '#0000FF', '#FF0000'],
                 autopct = self.Scaler (consume.sum ()),
                 radius = 1.0,
-                center = (2.25, 2.25))
+                center = (2.25, 2.25),
+                normalize = True)
         ax.set_title (time.strftime ('%d %B %Y', tm) + ' Consumed Power')
         fig.savefig (os.path.join (sDir, 'Consume_{:04d}{:02d}{:02d}.png'
                                    .format (tm.tm_year, tm.tm_mon, tm.tm_mday)),
@@ -311,7 +312,8 @@ class Daily:
                 colors = ['#00FF00', '#FFFF00', '#0000FF', '#FF0000'],
                 autopct = self.Scaler (self.use[scSolar].sum ()),
                 radius = 1.0,
-                center = (2.25, 2.25))
+                center = (2.25, 2.25),
+                normalize = True)
         ax.set_title (time.strftime ('%d %B %Y', tm) + ' Produced Power')
         fig.savefig (os.path.join (sDir, 'Produce_{:04d}{:02d}{:02d}.png'
                                    .format (tm.tm_year, tm.tm_mon, tm.tm_mday)),

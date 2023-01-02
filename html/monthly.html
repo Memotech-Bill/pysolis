@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>Solar PV Daily Statistics</title>
+    <title>Solar PV Monthly Statistics</title>
     <script>
       function dirstr (yr, mo) {
           return yr.toString ().padStart (4, "0") + "/" + mo.toString ().padStart (2, "0") + "/";
@@ -93,15 +93,15 @@
     <form>
       <input type="button" value="<" onclick="prev ();"/>
       <select id="mon" onchange="update ();">
-        <option value="01">January</option>
-        <option value="02">Febuary</option>
-        <option value="03">March</option>
-        <option value="04">April</option>
-        <option value="05">May</option>
-        <option value="06">June</option>
-        <option value="07">July</option>
-        <option value="08">August</option>
-        <option value="09">September</option>
+        <option value="1">January</option>
+        <option value="2">Febuary</option>
+        <option value="3">March</option>
+        <option value="4">April</option>
+        <option value="5">May</option>
+        <option value="6">June</option>
+        <option value="7">July</option>
+        <option value="8">August</option>
+        <option value="9">September</option>
         <option value="10">October</option>
         <option value="11">November</option>
         <option value="12">December</option>
@@ -120,7 +120,7 @@
       </select>
       <input type="button" value=">" onclick="next ();"/>
     </form>
-    <h2>Energy Saving</h2>
+    <h2>Energy Saving (House Consumption - Grid Import)</h2>
     <img id="saving">
     <h2>Consumed Energy (By: <span style="color: #00FF00;">House</span>,
       <span style="color: #FFFF00;">Inverter</span>)</h2>

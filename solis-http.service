@@ -1,0 +1,17 @@
+[Unit]
+Description=Solis Solar PV HTTP server
+After=network-online.target
+Wants=network-online.target systemd-networkd-wait-online.service
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+Type=exec
+User=pi
+WorkingDirectory=/home/pi/pysolis/http
+ExecStart=/usr/bin/python3 -m http.server 8080 --cgi >/dev/null 2>&1
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
