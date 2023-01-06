@@ -352,6 +352,9 @@
       span.buttons img:first-child {
           margin-top: 56px;
       }
+      div.nobreak {
+          page-break-inside: avoid;
+      }
     </style>
   </head>
   <body onload="initial ();">
@@ -365,44 +368,58 @@
       <input id="dpick" type="date" onchange="update ();"/>
       <input type="button" value=">" onclick="next ();"/>
     </form>
-    <h2>Status</h2>
-    <img id="status">
-    <h2>Statistics</h2>
-    <img id="cons_pie">
-    <img id="prod_pie">
-    <h2>Power Time History</h2>
-    <img id="power">
-    <h2>Battery Charge</h2>
-    <img id="battery">
-    <h2>Consumption (By: <span style="color: #00FF00;">House</span>,
-      <span style="color: #FFFF00;">Inverter</span>)</h2>
-    <canvas id="consume" width="950" height="240" style="float:left;"></canvas>
-    <span class="buttons">
-      <img src="Zoom_Up.png" onClick="zoom (g_chart_c, 'U');">
-      <img src="Zoom_Down.png" onClick="zoom (g_chart_c, 'D');">
-      <img src="Zoom_Left.png" onClick="zoom (g_chart_c, 'L');">
-      <img src="Zoom_Right.png" onClick="zoom (g_chart_c, 'R');">
-    </span>
-    <h2>Supply (Source: <span style="color: #00FF00;">Solar</span>,
-      <span style="color: #0000FF;">Battery</span>,
-      <span style="color: #FF0000;">Grid</span>)</h2>
-    <canvas id="supply" width="950" height="240" style="float:left;"></canvas>
-    <span class="buttons">
-      <img src="Zoom_Up.png" onClick="zoom (g_chart_s, 'U');">
-      <img src="Zoom_Down.png" onClick="zoom (g_chart_s, 'D');">
-      <img src="Zoom_Left.png" onClick="zoom (g_chart_s, 'L');">
-      <img src="Zoom_Right.png" onClick="zoom (g_chart_s, 'R');">
-    </span>
-    <h2>Production (Used by: <span style="color: #00FF00;">House</span>,
-      <span style="color: #FFFF00;">Inverter</span>,
-      <span style="color: #0000FF;">Battery</span>,
-      <span style="color: #FF0000;">Grid</span>)</h2>
-    <canvas id="produce" width="950" height="240" style="float:left;"></canvas>
-    <span class="buttons">
-      <img src="Zoom_Up.png" onClick="zoom (g_chart_p, 'U');">
-      <img src="Zoom_Down.png" onClick="zoom (g_chart_p, 'D');">
-      <img src="Zoom_Left.png" onClick="zoom (g_chart_p, 'L');">
-      <img src="Zoom_Right.png" onClick="zoom (g_chart_p, 'R');">
-    </span>
+    <div class="nobreak">
+      <h2>Status</h2>
+      <img id="status">
+    </div>
+    <div class="nobreak">
+      <h2>Statistics</h2>
+      <img id="cons_pie">
+      <img id="prod_pie">
+    </div>
+    <div class="nobreak">
+      <h2>Power Time History</h2>
+      <img id="power">
+    </div>
+    <div class="nobreak">
+      <h2>Battery Charge</h2>
+      <img id="battery">
+    </div>
+    <div class="nobreak">
+      <h2>Consumption (By: <span style="color: #00FF00;">House</span>,
+        <span style="color: #FFFF00;">Inverter</span>)</h2>
+      <canvas id="consume" width="950" height="240" style="float:left;"></canvas>
+      <span class="buttons">
+        <img src="Zoom_Up.png" onClick="zoom (g_chart_c, 'U');">
+        <img src="Zoom_Down.png" onClick="zoom (g_chart_c, 'D');">
+        <img src="Zoom_Left.png" onClick="zoom (g_chart_c, 'L');">
+        <img src="Zoom_Right.png" onClick="zoom (g_chart_c, 'R');">
+      </span>
+    </div>
+    <div class="nobreak">
+      <h2>Supply (Source: <span style="color: #00FF00;">Solar</span>,
+        <span style="color: #0000FF;">Battery</span>,
+        <span style="color: #FF0000;">Grid</span>)</h2>
+      <canvas id="supply" width="950" height="240" style="float:left;"></canvas>
+      <span class="buttons">
+        <img src="Zoom_Up.png" onClick="zoom (g_chart_s, 'U');">
+        <img src="Zoom_Down.png" onClick="zoom (g_chart_s, 'D');">
+        <img src="Zoom_Left.png" onClick="zoom (g_chart_s, 'L');">
+        <img src="Zoom_Right.png" onClick="zoom (g_chart_s, 'R');">
+      </span>
+    </div>
+    <div class="nobreak">
+      <h2>Production (Used by: <span style="color: #00FF00;">House</span>,
+        <span style="color: #FFFF00;">Inverter</span>,
+        <span style="color: #0000FF;">Battery</span>,
+        <span style="color: #FF0000;">Grid</span>)</h2>
+      <canvas id="produce" width="950" height="240" style="float:left;"></canvas>
+      <span class="buttons">
+        <img src="Zoom_Up.png" onClick="zoom (g_chart_p, 'U');">
+        <img src="Zoom_Down.png" onClick="zoom (g_chart_p, 'D');">
+        <img src="Zoom_Left.png" onClick="zoom (g_chart_p, 'L');">
+        <img src="Zoom_Right.png" onClick="zoom (g_chart_p, 'R');">
+      </span>
+    </div>
   </body>
 </html>

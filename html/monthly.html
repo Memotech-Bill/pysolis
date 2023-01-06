@@ -82,6 +82,9 @@
           display: table;
           margin: auto;
       }
+      div.nobreak {
+          page-break-inside: avoid;
+      }
     </style>
   </head>
   <body onload="initial ();">
@@ -120,25 +123,35 @@
       </select>
       <input type="button" value=">" onclick="next ();"/>
     </form>
-    <h2>Energy Saving (House Consumption - Grid Import)</h2>
-    <img id="saving">
-    <h2>Consumed Energy (By: <span style="color: #00FF00;">House</span>,
-      <span style="color: #FFFF00;">Inverter</span>)</h2>
-    <img id="consume">
-    <h2>Energy Supply (Source: <span style="color: #00FF00;">Solar</span>,
-      <span style="color: #0000FF;">Battery</span>,
-      <span style="color: #FF0000;">Grid</span>)</h2>
-    <img id="supply">
-    <h2>Produced Energy (Used by: <span style="color: #00FF00;">House</span>,
+    <div class="nobreak">
+      <h2>Energy Saving (House Consumption - Grid Import)</h2>
+      <img id="saving">
+      <h2>Consumed Energy (By: <span style="color: #00FF00;">House</span>,
+        <span style="color: #FFFF00;">Inverter</span>)</h2>
+      <img id="consume">
+    </div>
+    <div class="nobreak">
+      <h2>Energy Supply (Source: <span style="color: #00FF00;">Solar</span>,
+        <span style="color: #0000FF;">Battery</span>,
+        <span style="color: #FF0000;">Grid</span>)</h2>
+      <img id="supply">
+    </div>
+    <div class="nobreak">
+      <h2>Produced Energy (Used by: <span style="color: #00FF00;">House</span>,
         <span style="color: #FFFF00;">Inverter</span>,
         <span style="color: #0000FF;">Battery</span>,
         <span style="color: #FF0000;">Grid</span>)</h2>
-    <img id="produce">
-    <h2>Grid Energy (Used by: <span style="color: #00FF00;">House</span>,
+      <img id="produce">
+    </div>
+    <div class="nobreak">
+      <h2>Grid Energy (Used by: <span style="color: #00FF00;">House</span>,
         <span style="color: #FFFF00;">Inverter</span>,
         <span style="color: #0000FF;">Battery</span></h2>
-    <img id="grid">
-    <h2>Battery State of Charge (Minimum to Maximum)</h2>
-    <img id="battery">
+      <img id="grid">
+    </div>
+    <div class="nobreak">
+      <h2>Battery State of Charge (Minimum to Maximum)</h2>
+      <img id="battery">
+    </div>
   </body>
 </html>
