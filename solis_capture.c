@@ -1,4 +1,5 @@
-/* solis_sniff.c - A program to capture data going from the Solis data logger to the cloud */
+/* solis_capture.c - A program to capture data going from the Solis data logger to the cloud.
+                     Revised to also capture data going the other way. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +7,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
 #include <pcap.h>
@@ -76,6 +78,7 @@ typedef struct s_tcp
 typedef struct s_msg
     {
     struct s_msg *  next;
+    bool            cloud;
     u_int           nlen;
     tcp_seq         seq;
     bool            first;
@@ -87,6 +90,7 @@ MSG *msgfst = NULL;
 MSG *msglst = NULL;
 
 const char *psDir = ".";
+FILE *pfLog = NULL;
 
 const char *MacStr (char *sMac, const u_char *b)
     {
@@ -102,6 +106,21 @@ const char *IPStr (char *sIP, const struct in_addr *addr)
     return sIP;
     }
 
+void LogMsg (const char *psFmt, ...)
+    {
+    va_list va;
+    time_t t;
+    if ( pfLog == NULL ) return;
+    va_start (va, psFmt);
+    time (&t);
+    struct tm *now = gmtime (&t);
+    fprintf (pfLog, "%04d/%02d/%02d %02d:%02d:%02d ", now->tm_year + 1900, now->tm_mon + 1,
+        now->tm_mday, now->tm_hour, now->tm_min, now->tm_sec);
+    vfprintf (pfLog, psFmt, va);
+    fprintf (pfLog, "\n");
+    fflush (pfLog);
+    }
+
 FILE *save_rec (FILE *f, const MSG *msg)
     {
     if ( f == NULL )
@@ -115,13 +134,13 @@ FILE *save_rec (FILE *f, const MSG *msg)
         mkdir (sFile, 0750);
         sprintf (sFile, "%s/%04d/%02d", psDir, now->tm_year + 1900, now->tm_mon + 1);
         mkdir (sFile, 0750);
-        sprintf (sFile, "%s/%04d/%02d/Solis_R%d_%04d%02d%02d.cap", psDir, now->tm_year + 1900, now->tm_mon + 1,
-            msg->nlen, now->tm_year + 1900, now->tm_mon + 1, now->tm_mday);
+        sprintf (sFile, "%s/%04d/%02d/Solis_%c%d_%04d%02d%02d.cap", psDir, now->tm_year + 1900, now->tm_mon + 1,
+            msg->cloud ? 'T' : 'R', msg->nlen, now->tm_year + 1900, now->tm_mon + 1, now->tm_mday);
         // printf ("Open file: %s\n", sFile);
         f = fopen (sFile, "ab");
         if ( f == NULL )
             {
-            fprintf (stderr, "Unable to open file file: %s\n", sFile);
+            LogMsg ("Unable to open file file: %s", sFile);
             exit (1);
             }
         }
@@ -174,6 +193,7 @@ void capture (u_char *cfg, const struct pcap_pkthdr *ph, const u_char *pkt)
     //     ip->ttl, ip->pro, ntohs (ip->chk));
     // printf ("Source = %s, Destination = %s\n", IPStr (sIPSrc, &ip->src), IPStr (sIPDst, &ip->dst));
     if ( ip->pro != 0x06 ) return;
+    bool cloud = memcmp (&ip->dst.s_addr, cfg, 4) == 0;
 
     pkt += ip_hlen;
     plen -= ip_hlen;
@@ -197,7 +217,7 @@ void capture (u_char *cfg, const struct pcap_pkthdr *ph, const u_char *pkt)
         {
         // printf ("msg = %p\n", msg);
         // printf ("msg->nlen = %d\n", msg->nlen);
-        if ( msg->nlen == plen ) break;
+        if (( msg->cloud == cloud ) && ( msg->nlen == plen )) break;
         msg = msg->next;
         }
     if ( msg == NULL )
@@ -206,10 +226,11 @@ void capture (u_char *cfg, const struct pcap_pkthdr *ph, const u_char *pkt)
         msg = (MSG *) malloc (sizeof (MSG) + plen);
         if ( msg == NULL )
             {
-            fprintf (stderr, "Unable to allocate message buffer for length %d\n", plen);
+            LogMsg ("Unable to allocate message buffer for length %d", plen);
             exit (1);
             }
         msg->next = NULL;
+        msg->cloud = cloud;
         msg->nlen = plen;
         msg->seq = ip_seq;
         msg->first = true;
@@ -250,16 +271,37 @@ void capture (u_char *cfg, const struct pcap_pkthdr *ph, const u_char *pkt)
 
 int main (int nArg, const char *psArg[])
     {
+    u_char cfg[4];                      // Inverter IP address
     char errbuf[PCAP_ERRBUF_SIZE];      // Error message
 	bpf_u_int32 mask;		            // Interface netmask
 	bpf_u_int32 net;		            // Interface IP
 	struct bpf_program fp;		        // Compiled PCap filter
 
+    // Destination directory
+
+    if ( nArg > 3 ) psDir = psArg[3];
+
+    // IP Address of inverter
+
+    sscanf (psArg[2], "%hhd.%hhd.%hhd.%hhd", &cfg[0], &cfg[1], &cfg[2], &cfg[3]);
+
+    // Log file
+
+    if ( nArg > 4 )
+        {
+        pfLog = fopen (psArg[4], "a");
+        }
+    if (pfLog == NULL) pfLog = stderr;
+    LogMsg ("solis_capture started");
+    LogMsg ("Capture device: %s", psArg[1]);
+    LogMsg ("Inverter address: %d.%d.%d.%d", cfg[0], cfg[1], cfg[2], cfg[3]);
+    LogMsg ("Destination directory: %s", psDir);
+
 	// Find the properties for the device
     
 	if ( pcap_lookupnet (psArg[1], &net, &mask, errbuf) == -1 )
         {
-		fprintf (stderr, "Couldn't get netmask for device %s: %s\n", psArg[1], errbuf);
+		LogMsg ("Couldn't get netmask for device %s: %s", psArg[1], errbuf);
         return 1;
         }
     
@@ -268,51 +310,50 @@ int main (int nArg, const char *psArg[])
     pcap_t *pc = pcap_open_live (psArg[1], BUFSIZ, 0, 1000, errbuf);
     if ( pc == NULL )
         {
-        fprintf (stderr, "Failed to open %s for live capture: %s\n", psArg[1], errbuf);
+        LogMsg ("Failed to open %s for live capture: %s", psArg[1], errbuf);
         return 1;
         }
 
     // Get the header type
 
     int dlt = pcap_datalink (pc);
-    // fprintf (stderr, "Header type: %d\n", dlt);
+    // LogMsg ("Header type: %d", dlt);
     if ( dlt != DLT_EN10MB )
         {
-        fprintf(stderr, "Device %s doesn't provide Ethernet headers\n", psArg[1]);
+        fprintf(pfLog, "Device %s doesn't provide Ethernet headers\n", psArg[1]);
         return 1;
         }
 
     // Compile and apply the filter
 
     char sFilter[60];
-    sprintf (sFilter, "src host %s and dst port 10000 and len >= 61", psArg[2]);
+    // sprintf (sFilter, "src host %s and dst port 10000 and len >= 61", psArg[2]);
+    sprintf (sFilter, "host %s and port 10000 and len >= 61", psArg[2]);
 	if ( pcap_compile (pc, &fp, sFilter, 0, net) == -1 )
         {
-		fprintf (stderr, "Couldn't parse filter %s: %s\n", sFilter, pcap_geterr (pc));
+		LogMsg ("Couldn't parse filter %s: %s", sFilter, pcap_geterr (pc));
 		return 1;
         }
     
 	if ( pcap_setfilter (pc, &fp) == -1 )
         {
-		fprintf (stderr, "Couldn't install filter %s: %s\n", psArg[2], pcap_geterr (pc));
+		LogMsg ("Couldn't install filter %s: %s", psArg[2], pcap_geterr (pc));
 		return 1;
         }
 
-    // Destination directory
-
-    if ( nArg > 3 ) psDir = psArg[3];
-
     // Capture packets
 
-    if ( pcap_loop (pc, -1, capture, (u_char *) NULL) < 0 )
+    LogMsg ("Start of capture");
+    // if ( pcap_loop (pc, -1, capture, (u_char *) NULL) < 0 )
+    if ( pcap_loop (pc, -1, capture, cfg) < 0 )
         {
-        fprintf (stderr, "Failed to start packet capture: %s\n", pcap_geterr (pc));
+        LogMsg ("Failed to start packet capture: %s", pcap_geterr (pc));
         return 1;
         }
 
     // Clean up
 
-    fprintf (stderr, "End of capture\n");
+    LogMsg ("End of capture");
     pcap_close (pc);
 
     return 0;

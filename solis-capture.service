@@ -9,7 +9,7 @@ StartLimitBurst=5
 Type=exec
 User=pi
 WorkingDirectory=/home/pi/pysolis
-ExecStart=/home/pi/pysolis/solis_capture eth0 10.42.0.174 /home/pi/pysolis/log >/home/pi/pysolis/log/capture.log 2>&1
+ExecStart=/home/pi/pysolis/solis_capture eth0 10.42.0.174 /home/pi/pysolis/log /home/pi/pysolis/log/capture.log
 Restart=on-failure
 RestartSec=5s
 

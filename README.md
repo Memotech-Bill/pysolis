@@ -109,15 +109,19 @@ To compile the program use:
 gcc -o solis_capture solis_capture.c -lpcap
 ````
 
-The program takes three command line parameters:
+The program takes four command line parameters:
 
 * The name of the ethernet port that is connected to the Solis inverter.
 * The IP address of the Solis inverter.
-* The top level directory in which to record the captured data.
+* The top level directory in which to record the captured data (defaults to current directory).
+* Name of log file (defaults to writing to stderr).
 
 The captured data is recorded as records in files named `yyyy/mm/Solis_Rnnn_yyyymmdd.cap`, where
 nnn is the length of the data packet being sent to the cloud. Only the data in the 250 byte
 records is currently being used. See below for the format of some of these files.
+
+The program has now been extended to also record data sent from the cloud in files named
+`yyyy/mm/Solis_Rnnn_yyyymmdd.cap`. The format of this data is yet to be investigated.
 
 Configuring the program to work without root permissions was based upon:
 https://web.archive.org/web/20160403142820/http://peternixon.net/news/2012/01/28/configure-tcpdump-work-non-root-user-opensuse-using-file-system-capabilities/
@@ -128,7 +132,7 @@ Since I already had Wireshark installed with dumpcap configured to work as non-r
 ````
 chgrp wireshark solis_capture
 chmod 750 solis_capture
-setcap cap_net_raw,cap_net_admin=ep solis_capture
+sudo setcap cap_net_raw,cap_net_admin=ep solis_capture
 ````
 
 This program is started from the same script as starts the webserver (see below). This script is

@@ -9,8 +9,8 @@ import calendar
 
 all_regs = (
     ('H16', 1, b'\xAA\x55'),                                            #   0
-    ('T64', 1, 'Data time'),                                            #   2
-    ('D96', 1, 'System Time'),                                          #  10
+    ('T64', -1, 'Data time'),                                            #   2
+    ('D96', -1, 'System Time'),                                          #  10
     ('X16', 1, 'Not Used'),                                             #  22
     ('U32', 1, 'Total Generation (kWh)'),                               #  24
     ('U32', 1, 'Generated This Month (kWh)'),                           #  28
@@ -115,7 +115,7 @@ all_regs = (
     ('U16', 1, 'Fault Code 04'),                                        # 290
     ('U16', 1, 'Fault Code 05'),                                        # 292
     ('U16', 1, 'Working Status'),                                       # 294
-    ('T64', 1, 'End data time'),                                        # 296
+    ('T64', -1, 'End data time'),                                        # 296
     ('H16', 1, b'\x55\xAA'))                                            # 304
 
 def datalen ():
@@ -195,6 +195,8 @@ def decode (rec):
             lv.append ('{:4.2f}'.format (v/scl))
         elif ( scl == 1000 ):
             lv.append ('{:5.3f}'.format (v/scl))
+        elif ( scl == -1 ):
+            lv.append (time.strftime ('%Y-%m-%d %H:%M:%S', time.gmtime (v)))
     return ','.join (lv) + '\n'
 
 def dump (sIn, sOut):
