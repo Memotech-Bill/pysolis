@@ -270,8 +270,8 @@
           document.getElementById ("power").src = dir + "Power_" + when + ".png";
           document.getElementById ("battery").src = dir + "Battery_" + when + ".png";
           document.getElementById ("molink").search = "m=" + mo.toString () + "&y=" + yr.toString ();
-          let dt = new Date(yr, mo - 1, dy)
-          let t = Math.trunc (dt.getTime () / 1000);
+          let dt = Date.UTC(yr, mo - 1, dy)
+          let t = Math.trunc (dt / 1000);
           request (t, receive);
       }
       function initial () {
