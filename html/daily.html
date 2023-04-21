@@ -198,8 +198,17 @@
           ctx.beginPath ();
           ctx.moveTo (xpos - 1, ypos - 1);
           ctx.lineTo (xpos + wth, ypos - 1);
+          ctx.stroke ();
+          ctx.beginPath ();
+          ctx.moveTo (xpos + wth, ypos - 1);
           ctx.lineTo (xpos + wth, ypos + hgt);
+          ctx.stroke ();
+          ctx.beginPath ();
+          ctx.moveTo (xpos + wth, ypos + hgt);
           ctx.lineTo (xpos - 1, ypos + hgt);
+          ctx.stroke ();
+          ctx.beginPath ();
+          ctx.moveTo (xpos - 1, ypos + hgt);
           ctx.lineTo (xpos - 1, ypos - 1);
           ctx.stroke ();
       }
