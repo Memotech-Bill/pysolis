@@ -6,6 +6,12 @@ This is a set of Python programs and HTML scripts to provide monitoring of a Sol
 Inverter, independent of the manufacturer's cloud based system. At present the system purely provides
 monitoring and does not attempt to take any action based upon the data.
 
+For examples of what the display looks like, see:
+
+* [Current days statistics](https://memotech-bill.github.io/pysolis/)
+* [Statistics for previous days](https://memotech-bill.github.io/pysolis/daily.html)
+* {Summary for the month](https://memotech-bill.github.io/pysolis/monthly.html)
+
 The code has been developed ad-hoc, and is not entirely consistent. Use at your own risk.
 
 The data is obtained via a Solis data logger with Ethernet connection. The particular data logger
