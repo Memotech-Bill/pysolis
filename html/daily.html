@@ -365,6 +365,11 @@
       div.nobreak {
           page-break-inside: avoid;
       }
+      @media print {
+          span.buttons {
+              display: none;
+          }
+      }
     </style>
   </head>
   <body onload="initial ();">
