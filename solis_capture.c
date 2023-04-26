@@ -83,6 +83,7 @@ typedef struct s_msg
     tcp_seq         seq;
     bool            first;
     time_t          trecv;
+    u_int           nseq;
     u_char          prev[1];
     } MSG;
 
@@ -123,33 +124,47 @@ void LogMsg (const char *psFmt, ...)
 
 FILE *save_rec (FILE *f, const MSG *msg)
     {
+    char sFile[256];
+    time_t t;
+    time (&t);
+    // printf ("time = %d\n", t);
+    struct tm *now = gmtime (&t);
+    sprintf (sFile, "%s/%04d", psDir, now->tm_year + 1900);
+    mkdir (sFile, 0750);
+    sprintf (sFile, "%s/%04d/%02d", psDir, now->tm_year + 1900, now->tm_mon + 1);
+    mkdir (sFile, 0750);
+    sprintf (sFile, "%s/%04d/%02d/Solis_%04d%02d%02d.seq", psDir, now->tm_year + 1900, now->tm_mon + 1,
+        now->tm_year + 1900, now->tm_mon + 1, now->tm_mday);
+    FILE *fSeq = fopen (sFile, "ab");
+    u_short head[2];
+    head[0] = msg->cloud ? 'T' : 'R';
+    head[1] = msg->nlen;
+    fwrite (head, sizeof (u_short), 2, fSeq);
+    fwrite (&msg->nseq, sizeof (msg->nseq), 1, fSeq);
+    uint64_t t64 = msg->trecv;
+    fwrite (&t64, sizeof (t64), 1, fSeq);
+    fclose (fSeq);
+    if ( fSeq == NULL )
+        {
+        LogMsg ("Unable to open file: %s", sFile);
+        exit (1);
+        }
     if ( f == NULL )
         {
-        char sFile[256];
-        time_t t;
-        time (&t);
-        // printf ("time = %d\n", t);
-        struct tm *now = gmtime (&t);
-        sprintf (sFile, "%s/%04d", psDir, now->tm_year + 1900);
-        mkdir (sFile, 0750);
-        sprintf (sFile, "%s/%04d/%02d", psDir, now->tm_year + 1900, now->tm_mon + 1);
-        mkdir (sFile, 0750);
         sprintf (sFile, "%s/%04d/%02d/Solis_%c%d_%04d%02d%02d.cap", psDir, now->tm_year + 1900, now->tm_mon + 1,
             msg->cloud ? 'T' : 'R', msg->nlen, now->tm_year + 1900, now->tm_mon + 1, now->tm_mday);
         // printf ("Open file: %s\n", sFile);
         f = fopen (sFile, "ab");
         if ( f == NULL )
             {
-            LogMsg ("Unable to open file file: %s", sFile);
+            LogMsg ("Unable to open file: %s", sFile);
             exit (1);
             }
         }
     // printf ("Write record.\n");
-    u_short head[2];
     head[0] = 0x5AA5;
     head[1] = msg->nlen;
     fwrite (head, sizeof (u_short), 2, f);
-    uint64_t t64 = msg->trecv;
     fwrite (&t64, sizeof (t64), 1, f);
     fwrite (msg->prev, sizeof (u_char), msg->nlen, f);
     head[0] = 0xA55A;
@@ -160,8 +175,7 @@ FILE *save_rec (FILE *f, const MSG *msg)
 
 void capture (u_char *cfg, const struct pcap_pkthdr *ph, const u_char *pkt)
     {
-    static int npkt = 0;
-    ++npkt;
+    static u_int npkt = 0;
     // printf ("------------------------------------------------\n"
     //    "Packet number = %d, length = %d, captured = %d, time = %d.%06d\n",
     //    npkt, ph->len, ph->caplen, ph->ts.tv_sec, ph->ts.tv_usec);
@@ -235,6 +249,7 @@ void capture (u_char *cfg, const struct pcap_pkthdr *ph, const u_char *pkt)
         msg->seq = ip_seq;
         msg->first = true;
         msg->trecv = ph->ts.tv_sec;
+        msg->nseq = ++npkt;
         memcpy (msg->prev, pkt, plen);
         // printf ("Message buffer created: msg = %p\n", msg);
         if ( msgfst == NULL )
@@ -263,6 +278,7 @@ void capture (u_char *cfg, const struct pcap_pkthdr *ph, const u_char *pkt)
         {
         // printf ("Save new record.\n");
         msg->trecv = ph->ts.tv_sec;
+        msg->nseq = ++npkt;
         memcpy (msg->prev, pkt, plen);
         f = save_rec (f, msg);
         }

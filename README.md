@@ -135,8 +135,17 @@ chmod 750 solis_capture
 sudo setcap cap_net_raw,cap_net_admin=ep solis_capture
 ````
 
-This program is started from the same script as starts the webserver (see below). This script is
-started from `crontab` using `@reboot`.
+~~This program is started from the same script as starts the webserver (see below). This script is
+started from `crontab` using `@reboot`.~~
+
+This program is now controlled by `systemd`. The commands to start and stop it are respectively:
+
+````
+sudo systemctl start solis-capture
+sudo systemctl stop solis-capture
+````
+
+Note hyphen not underscore in name.
 
 ### solis_daily.py - Generate or update plots on a daily basis
 
