@@ -73,8 +73,9 @@
           return [pGrid, pBatt + pGrid, pBatt + pGrid + pInv, pTot];
       }
       function fmtTime (tLab) {
-          return Math.trunc (( tLab % 86400 ) / 3600).toString () + ":" +
-              Math.trunc ((tLab % 3600 ) / 60 ).toString ().padStart (2, "0")
+          const d = new Date ();
+          d.setTime (1000* tLab);
+          return d.getHours ().toString () + ":" + d.getMinutes ().toString ().padStart (2, "0")
       }
       function plot (chart, data) {
           let i, j;

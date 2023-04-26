@@ -5,6 +5,7 @@
 import os
 import sys
 import time
+import datetime
 import calendar
 import struct
 import csv
@@ -78,10 +79,8 @@ def Decode2 (rec):
     return [t, solar, load, invtr, batt, grid, bsoc]
 
 def TimeFmt (t, pos):
-    t = int (t)
-    h = ( t // 3600 ) % 24
-    m = ( t // 60 ) % 60
-    return '{:d}:{:02d}'.format (h, m)
+    t = datetime.datetime.fromtimestamp (t)
+    return '{:d}:{:02d}'.format (t.hour, t.minute)
 
 def Status (t, data):
     tmax = 600
@@ -233,7 +232,10 @@ class Daily:
             ax.barh (1.0, wth, left=tim, color=[clr])
         for tim, wth, clr in self.status2:
             ax.barh (2.0, wth, left=tim, color=[clr])
-        ax.set_xlabel ('Time')
+        if tm.tm_isdst == 1:
+            ax.set_xlabel ('Time (BST)')
+        else:
+            ax.set_xlabel ('Time (GMT)')
         ax.set_title (time.strftime ('%d %B %Y', tm))
         ax.xaxis.set_major_formatter (ticker.FuncFormatter(TimeFmt))
         ax.xaxis.set_major_locator (ticker.LinearLocator (numticks = 13))
@@ -255,7 +257,10 @@ class Daily:
         ax.plot (self.data[:,rdTime], self.data[:,rdInvtr], label='Inverter', color='#FFFF00')
         ax.plot (self.data[:,rdTime], -self.data[:,rdBatt], label='Battery', color = '#0000FF')
         ax.plot (self.data[:,rdTime], -self.data[:,rdGrid], label='Grid', color = '#FF0000')
-        ax.set_xlabel ('Time')
+        if tm.tm_isdst == 1:
+            ax.set_xlabel ('Time (BST)')
+        else:
+            ax.set_xlabel ('Time (GMT)')
         ax.set_ylabel ('Power (W)')
         ax.yaxis.grid (which='major')
         ax.set_title (time.strftime ('%d %B %Y', tm))
@@ -274,7 +279,10 @@ class Daily:
         ax.set_xlim (tmin, tmax)
         ax.set_ylim (0.0, 100.0)
         ax.plot (self.data[:,rdTime], self.data[:,rdSoC], label='State of Charge', color='#0000FF')
-        ax.set_xlabel ('Time')
+        if tm.tm_isdst == 1:
+            ax.set_xlabel ('Time (BST)')
+        else:
+            ax.set_xlabel ('Time (GMT)')
         ax.set_ylabel ('State of Charge')
         ax.yaxis.grid (which='major')
         ax.set_title (time.strftime ('%d %B %Y', tm))
@@ -485,7 +493,7 @@ def Main ():
     if ( len (sys.argv) > 1 ):
         tm = time.strptime (sys.argv[1], '%Y-%m-%d')
     else:
-        tm = time.gmtime (time.time () - 86400)
+        tm = time.localtime (time.time () - 86400)
     sDDir = os.path.join (sDataDir, '{:04d}'.format (tm.tm_year), '{:02d}'.format (tm.tm_mon))
     sLDir = os.path.join (sLogDir, '{:04d}'.format (tm.tm_year), '{:02d}'.format (tm.tm_mon))
     if ( len (sys.argv) == 3 ):
