@@ -162,12 +162,13 @@ FILE *save_rec (FILE *f, const MSG *msg)
             }
         }
     // printf ("Write record.\n");
-    head[0] = 0x5AA5;
+    head[0] = 0x5AA6;
     head[1] = msg->nlen;
     fwrite (head, sizeof (u_short), 2, f);
     fwrite (&t64, sizeof (t64), 1, f);
+    fwrite (&msg->nseq, sizeof (msg->nseq), 1, f);
     fwrite (msg->prev, sizeof (u_char), msg->nlen, f);
-    head[0] = 0xA55A;
+    head[0] = 0xA559;
     fwrite (head, sizeof (u_short), 1, f);
     // printf ("Reccord complete.\n");
     return f;
@@ -344,7 +345,8 @@ int main (int nArg, const char *psArg[])
 
     char sFilter[60];
     // sprintf (sFilter, "src host %s and dst port 10000 and len >= 61", psArg[2]);
-    sprintf (sFilter, "host %s and port 10000 and len >= 61", psArg[2]);
+    // sprintf (sFilter, "host %s and port 10000 and len >= 61", psArg[2]);
+    sprintf (sFilter, "host %s and port 443 and len >= 61", psArg[2]);
 	if ( pcap_compile (pc, &fp, sFilter, 0, net) == -1 )
         {
 		LogMsg ("Couldn't parse filter %s: %s", sFilter, pcap_geterr (pc));

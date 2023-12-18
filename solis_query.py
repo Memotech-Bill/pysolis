@@ -21,7 +21,7 @@ def query (addr, logdir):
             lst = 0
             rec = b'\xAA\x55'
             rec += struct.pack ('<Q', int (time.time ()))
-            sock = socket.create_connection ((addr, 30003), timeout = 20)
+            sock = socket.create_connection ((addr, 502), timeout = 20)
             for fst, lst in registers:
                 req = umodbus.client.tcp.read_input_registers (sid, fst, lst - fst)
                 bFail = True

@@ -47,6 +47,21 @@ be requested.
 Therefore to provide a fallback, the data being sent to the cloud is captured as it passes through.
 Again, all the available data is being captured but only the same small subset is being displayed.
 
+### Revision December 2023
+
+The datalogger on my inverter has been replaced by a new model. This has a number of differences
+from the previous version:
+
+* The standard port (502) is used for ModBus queries instead of 30003.
+* The records exchanged with the Solis Cloud have a different format. The connection at the
+cloud end is on port 443 rather than 10000. It is not currently believed that the records are
+actually HTTPS encrypted records. However the record lengths are different to previously and
+the exact format is yet to be determined.
+
+Programs `solis_capture.c` and `solis_query.py` have been updated to account for these changes.
+Until the new Solis Cloud record format is decoded, the web display will be based entirely on
+the ModBus data.
+
 ## Configuration
 
 I run the software on a Raspberry Pi. The Raspberry Pi ethernet port is wired directly to the
