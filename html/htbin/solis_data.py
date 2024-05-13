@@ -65,10 +65,13 @@ class Source:
         return d2
 
     def GetNext (self):
+        while (True):
             if ( self.irec >= self.nrec ):
                 return None
             self.irec += 1
-            return self.Decode (self.f.read (self.reclen))
+            r = self.Decode (self.f.read (self.reclen))
+            if ( r is not None ):
+                return r
 
 class Source1 (Source):
     def __init__ (self, tm):

@@ -39,7 +39,7 @@ def Decode1 (rec):
     if ((rec[0] != 0xAA) or (rec[1] != 0x55) or (rec[-2] != 0x55) or (rec[-1] != 0xAA)):
         sys.stderr.write ('Invalid Modbus record: 0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X}\n'
                           .format (rec[0], rec[1], rec[-2], rec[-1]))
-        sys.exit (1)
+        return None
     t = struct.unpack ('<Q', rec[2:10])[0]
     w = struct.unpack ('<HH', rec[64:68])               # Total DC Input Power (W)
     solar = ( w[0] << 16 ) | w[1]
@@ -127,7 +127,9 @@ class Daily:
                     rec = f.read (reclen1)
                     if ( not rec ):
                         break
-                    data1.append (Decode1 (rec))
+                    rec = Decode1 (rec)
+                    if ( rec is not None ):
+                        data1.append ()
         self.status1 = Status (tday, data1)
         sFile = os.path.join (sDir, 'Solis_R250_{:04d}{:02d}{:02d}.cap'.format (tm.tm_year, tm.tm_mon, tm.tm_mday))
         if ( os.path.exists (sFile) ):
