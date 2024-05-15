@@ -129,7 +129,7 @@ class Daily:
                         break
                     rec = Decode1 (rec)
                     if ( rec is not None ):
-                        data1.append ()
+                        data1.append (rec)
         self.status1 = Status (tday, data1)
         sFile = os.path.join (sDir, 'Solis_R250_{:04d}{:02d}{:02d}.cap'.format (tm.tm_year, tm.tm_mon, tm.tm_mday))
         if ( os.path.exists (sFile) ):
