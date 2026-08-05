@@ -25,6 +25,7 @@ rdInvtr = 3
 rdBatt = 4
 rdGrid = 5
 rdSoC = 6
+rdSoH = 7
 
 scSolar = 0
 scBatt = 1
@@ -52,9 +53,16 @@ def Decode1 (rec):
     batt = ( w[0] << 16 ) | w[1]                        # +ve = Charging
     if ( struct.unpack ('<H', rec[138:140])[0] > 0 ):   # Battery Current Direction
         batt = -batt                                    # -ve = Discharging
-    bsoc = struct.unpack ('<H', rec[146:148])[0]
+    bsoc = struct.unpack ('<H', rec[146:148])[0]        # Battery State of Charge
+    bsoh = struct.unpack ('<H', rec[148:150])[0]        # Battery State of Health
     invtr = solar - load - batt - grid
-    return [t, solar, load, invtr, batt, grid, bsoc]
+    if (invtr < 0):                                     # Battery sign inconsistent?
+        if (batt > 0):
+            invtr += 2 * batt
+            batt = -batt
+        if (invtr < 0):
+            invtr = 0
+    return [t, solar, load, invtr, batt, grid, bsoc, bsoh]
 
 def Decode2 (rec):
     if ((rec[0] != 0xA5) or (rec[1] != 0x5A) or (rec[-2] != 0x5A) or (rec[-1] != 0xA5)):
@@ -76,7 +84,7 @@ def Decode2 (rec):
     load = struct.unpack ('<H', rec[188:190])[0]        # Load power watts
     batt = batv * bata // 100
     invtr = solar - load - batt - grid
-    return [t, solar, load, invtr, batt, grid, bsoc]
+    return [t, solar, load, invtr, batt, grid, bsoc, 100]
 
 def TimeFmt (t, pos):
     t = datetime.datetime.fromtimestamp (t)
@@ -216,24 +224,26 @@ class Daily:
             for sSrc in ['Solar', 'Battery', 'Grid']:
                 for sSink in ['House', 'Inverter', 'Battery', 'Grid']:
                     f.write (',{:s} to {:s}'.format (sSrc, sSink))
-            f.write ('\n')
+            f.write (',Min Battery Charge,Max Battery Charge,Battery Health\n')
         f.write ('{:d},{:d},{:d}'.format (tm.tm_year, tm.tm_mon, tm.tm_mday))
         for sc in [scSolar, scBatt, scGrid]:
             for sk in [skHouse, skInvtr, skBatt, skGrid]:
                 f.write (',{:5.3f}'.format (self.use[sc, sk]))
-        f.write (',{:d},{:d}\n'.format (self.data[:, rdSoC].min (), self.data[:, rdSoC].max ()))
+        f.write (',{:d},{:d},{:d}\n'.format (self.data[:, rdSoC].min (), self.data[:, rdSoC].max (), self.data[:, rdSoH].min ()))
         f.close ()
 
     def StatusPlt (self, sDir, tm):
-        fig = plt.figure (figsize=(10.0, 1.0), dpi = 100, facecolor='w')
-        ax = fig.add_axes ([0.1, 0.25, 0.85, 0.5])
+        # fig = plt.figure (figsize=(10.0, 1.0), dpi = 100, facecolor='w')
+        # ax = fig.add_axes ([0.1, 0.25, 0.85, 0.5])
+        fig = plt.figure (figsize=(10.0, 0.7), dpi = 100, facecolor='w')
+        ax = fig.add_axes ([0.1, 0.35, 0.85, 0.3])
         tmin = self.status1[0][0];
         tmax = tmin + 86400
         ax.set_xlim (tmin, tmax)
         for tim, wth, clr in self.status1:
             ax.barh (1.0, wth, left=tim, color=[clr])
-        for tim, wth, clr in self.status2:
-            ax.barh (2.0, wth, left=tim, color=[clr])
+        # for tim, wth, clr in self.status2:
+        #     ax.barh (2.0, wth, left=tim, color=[clr])
         if tm.tm_isdst == 1:
             ax.set_xlabel ('Time (BST)')
         else:
@@ -241,7 +251,8 @@ class Daily:
         ax.set_title (time.strftime ('%d %B %Y', tm))
         ax.xaxis.set_major_formatter (ticker.FuncFormatter(TimeFmt))
         ax.xaxis.set_major_locator (ticker.LinearLocator (numticks = 13))
-        ax.set_yticks ([1.0, 2.0])
+        # ax.set_yticks ([1.0, 2.0])
+        ax.set_yticks ([1.0])
         ax.yaxis.set_major_formatter (ticker.FuncFormatter(lambda x, p: {1.0: 'Modbus', 2.0: 'Cloud'}[x]))
         ax.invert_yaxis ()
         fig.savefig (os.path.join (sDir, 'Status_{:04d}{:02d}{:02d}.png'
@@ -346,6 +357,7 @@ class Monthly:
             self.days = []
             self.data = [[[], [], [], []], [[], [], [], []], [[], [], [], []]]
             self.soc = []
+            self.soh = []
             for row in csv.reader (f):
                 nrow += 1
                 if (( nrow > 1 ) and ( len (row) >= 15 )):
@@ -362,11 +374,16 @@ class Monthly:
                         self.soc.append ((socmin, socmax - socmin))
                     else:
                         self.soc.append ((0, 0))
+                    if ( len (row) >= 18 ):
+                        self.soh.append (int (row[17]))
+                    else:
+                        self.soh.append (None)
         self.days = np.array (self.days)
         self.data = np.array (self.data)
         self.soc = np.array (self.soc)
+        self.soh = np.array (self.soh)
         self.ndays = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)[tm.tm_mon - 1]
-        if (( tm.tm_mon == 2 ) and ( tm.tm_year % 100 == 0 )):
+        if (( tm.tm_mon == 2 ) and ( tm.tm_year % 4 == 0 )):
             self.ndays = 29
 
     def ConsumePlt (self, sDir, tm):
@@ -455,8 +472,9 @@ class Monthly:
         ax.yaxis.grid (which='major')
         ax.set_xlabel ('Day of the Month')
         ax.set_ylabel ('State of Charge (%)')
-        ax.set_title ('Battery Charge ' + time.strftime ('%B %Y', tm))
-        ax.bar (self.days, self.soc[:, 1], bottom=self.soc[:, 0], color='#0000FF', label='Battery')
+        ax.set_title ('Battery Charge and Health ' + time.strftime ('%B %Y', tm))
+        ax.bar (self.days, self.soc[:, 1], bottom=self.soc[:, 0], color='#0000FF', label='Charge')
+        ax.plot (self.days, self.soh, color='#FF0000', label='Health')
         fig.savefig (os.path.join (sDir, 'Monthly_Battery_{:04d}{:02d}.png'
                                    .format (tm.tm_year, tm.tm_mon)),
                      format = 'png')
