@@ -242,7 +242,7 @@
           let t = Math.trunc (Date.now () / 1000);
           lrow = g_data.length - 1;
           let pinv = g_data[lrow][2] - g_data[lrow][1] - g_data[lrow][3] - g_data[lrow][4];
-          document.getElementById("p_update").innerHTML = fmtStatus (t, t_modbus) + "<br/>" + fmtStatus (t, t_cloud);
+          document.getElementById("p_update").innerHTML = fmtStatus (t, t_modbus);
           document.getElementById("p_load").innerHTML = kwString (g_data[lrow][1]);
           document.getElementById("p_inverter").innerHTML = kwString (pinv);
           document.getElementById("p_solar").innerHTML = kwString (g_data[lrow][2]);

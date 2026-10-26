@@ -122,7 +122,7 @@ class Solis:
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser (description = 'Controls timed charging according to battery charge')
-    p.add_argument ('-a', '--ip_address', required = True, help = 'Address of Solis Invertor')
+    p.add_argument ('-a', '--ip_address', required = True, help = 'Address of Solis Inverter')
     p.add_argument ('-b', '--battery-level', type = int, default = 25, help = 'Battery level below which to enable timed charge')
     p.add_argument ('-c', '--current', type = int, default = 10, help = 'Timed charge charging current')
     p.add_argument ('-s', '--start-time', default = '23:00', help = 'Charging start time (hh:mm)')
